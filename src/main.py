@@ -1,6 +1,7 @@
-# System paths and regex
+# System paths, regex, math operations
 import sys
 import re
+import math
 
 # The G.O.A.T
 from stockfish import Stockfish
@@ -37,7 +38,6 @@ class ChessBoard(QWidget):
         self.current_position = {}
         self.piece_images = {}
         self._initialize_board()
-        self.summon_the_fish()
 
 
     def _initialize_board(self):
@@ -135,11 +135,6 @@ class ChessBoard(QWidget):
                 self.svg_renderers[piece_type] = QSvgRenderer(str(path))
             else:
                 print(f"Warning: Missing SVG for {piece_type} at {path}")
-
-
-    def summon_the_fish(self):
-        """Initializes and parameterizes the local stockfish engine"""
-        stockfish = Stockfish("/usr/games/stockfish",depth=2,parameters={"Threads":2, "Minimum Thinking Time": 5})
 
 
     def _set_fish_position(self, moves):
@@ -240,6 +235,7 @@ class MainWindow(QMainWindow):
         self.white_percentage = None
         self.black_percentage = None
         self.turn_label = None
+        self.summon_the_fish()
         self.setup_ui()
 
 
@@ -345,7 +341,9 @@ class MainWindow(QMainWindow):
         # Return entire menu
         return menu_bar
 
+
     def on_fen_editing_finished(self):
+        """Processes user input from the FEN string box"""
         # Receive user input after Enter is pressed
         user_input = self.fen_input.text()
 
@@ -368,6 +366,7 @@ class MainWindow(QMainWindow):
         """Loads a chess position based on a given FEN-string"""
         print("Fen position loaded!")
         pass
+
 
     def _is_valid_fen(self, fen_string):
         """Checks the validity of a supplied FEN-string"""
@@ -444,24 +443,28 @@ class MainWindow(QMainWindow):
         """Calls the next_move method and updates the game label accordingly"""
         if self.chess_board.next_move():
             self.chess_board.update_move_count_label(self.turn_label)
+            self.update_stockfish_evaluation()
 
 
     def handle_previous_move_action(self):
         """Calls the previous_move method and updates the game label accordingly"""
         if self.chess_board.previous_move():
             self.chess_board.update_move_count_label(self.turn_label)
+            self.update_stockfish_evaluation()
 
 
     def handle_last_move_action(self):
         """Calls the last_move method and updates the game label accordingly"""
         if self.chess_board.last_move():
             self.chess_board.update_move_count_label(self.turn_label)
+            self.update_stockfish_evaluation()
 
 
     def handle_reset_action(self):
         """Calls the reset_to_start method and updates the game label accordingly"""
         self.chess_board.reset_to_start()
         self.chess_board.update_move_count_label(self.turn_label)
+        self.update_stockfish_evaluation()
 
 
     def create_info_panel(self):
@@ -524,7 +527,6 @@ class MainWindow(QMainWindow):
         self.winner_label = QLabel("Result:")
         self.best_move_label = QLabel("Best Move:")
         self.evaluation_bar = QProgressBar()
-        self.evaluation_bar.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.event_label.setWordWrap(True)
         info_group_layout.addWidget(player1_container)
         info_group_layout.addWidget(player2_container)
@@ -552,6 +554,10 @@ class MainWindow(QMainWindow):
         self.black_percentage = QLabel("0%")
         self.black_percentage.setStyleSheet("font-size: 11px;")
         self.black_percentage.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.evaluation_bar.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.evaluation_bar.setRange(0,1000)
+        self.evaluation_bar.setValue(500)
+        self.evaluation_bar.setTextVisible(False)
         fish_group = QGroupBox("Stockfish")
         fish_group.setStyleSheet("margin-bottom: 6px")
         fish_layout = QVBoxLayout(fish_group)
@@ -571,6 +577,11 @@ class MainWindow(QMainWindow):
 
         # Return entire information frame
         return info_frame
+
+
+    def summon_the_fish(self):
+        """Initializes and parameterizes the local stockfish engine"""
+        self.stockfish = Stockfish("/usr/games/stockfish",depth=2,parameters={"Threads":2, "Minimum Thinking Time": 5})
 
 
     def create_center_panel(self):
@@ -621,6 +632,65 @@ class MainWindow(QMainWindow):
 
         # Return board and nav layout together
         return center_frame
+
+
+    def update_stockfish_evaluation(self):
+        """Updates the stockfish evaluation bar and percentages"""
+        # Ensure a move is loaded and that a game instance exists
+        if not hasattr(self, 'chess_board') or not self.chess_board:
+            return
+        current_position = self.chess_board.get_current_position()
+        if not current_position:
+            return
+
+        # Set position, get evaluation
+        self.stockfish.set_fen_position(current_position)
+        evaluation = self.stockfish.get_evaluation()
+
+        # Get best move
+        best_move = self.stockfish.get_best_move()
+        if best_move:
+            self.best_move_label.setText(f"Best Move: {best_move}")
+        else:
+            self.best_move_label.setText("Best Move: N/A")
+
+        # Calculate win percentage
+        win_percentage = 50     # Good default value
+        if evaluation['type'] == 'cp':
+            advantage = evaluation['value'] / 100.0
+            win_percentage = 50 + 50 * (2 / (1 + math.exp(-0.5 * advantage)) - 1)
+        elif evaluation['type'] == 'mate':  # Checkmate found
+            # If mate is found, give a high percentage to the winning side
+            if evaluation['value'] > 0:
+                win_percentage = 99  # White wins (positive mate)
+            else:
+                win_percentage = 1   # Black wins (negative mate)
+
+            # Ensure win percentage is within bounds
+            win_percentage = max(1, min(99, win_percentage))
+
+            # Update the progress bar (0-100 scale)
+            self.evaluation_bar.setValue(int(win_percentage))
+
+            # Update percentage labels
+            white_percentage = win_percentage
+            black_percentage = 100 - white_percentage
+
+            self.white_percentage.setText(f"{int(white_percentage)}%")
+            self.black_percentage.setText(f"{int(black_percentage)}%")
+
+            # Style the progress bar based on advantage
+            if white_percentage > 55:
+                # White advantage - use white color gradient
+                value = int((white_percentage - 50) * 2.55)  # Scale to 0-255
+                self.evaluation_bar.setStyleSheet(f"QProgressBar::chunk {{ background-color: rgb(255, 255, 255); }}")
+            elif black_percentage > 55:
+                # Black advantage - use black color gradient
+                value = int((black_percentage - 50) * 2.55)  # Scale to 0-255
+                self.evaluation_bar.setStyleSheet(f"QProgressBar::chunk {{ background-color: rgb(0, 0, 0); }}")
+            else:
+                # Even game (approximately)
+                self.evaluation_bar.setStyleSheet(f"QProgressBar::chunk {{ background-color: rgb(180, 180, 180); }}")
 
 
     def change_window_theme(self):
@@ -703,28 +773,37 @@ class MainWindow(QMainWindow):
                 self.event_label.setText("Event: N/A")
                 self.winner_label.setText("Winner: N/A")
         self.chess_board.update_move_count_label(self.turn_label)
+        self.update_stockfish_evaluation()
 
 
 class HelpWindow(QWidget):
     def __init__(self):
         super().__init__()
+        self.setWindowTitle("Help")
+        self.setMinimumSize(480,640)
+        self.setup_help_list()
+
+
+    def setup_help_list(self):
         layout = QVBoxLayout()
         self.label = QLabel("Help Window")
         layout.addWidget(self.label)
         self.setLayout(layout)
-        self.setWindowTitle("Help")
-        self.setMinimumSize(480,640)
 
 
 class ThemeWindow(QWidget):
     def __init__(self):
         super().__init__()
+        self.setWindowTitle("Themes")
+        self.setMinimumSize(480,640)
+        self.setup_theme_list()
+
+
+    def setup_theme_list(self):
         layout = QVBoxLayout()
         self.label = QLabel("Themes")
         layout.addWidget(self.label)
         self.setLayout(layout)
-        self.setWindowTitle("Themes")
-        self.setMinimumSize(480,640)
 
 
 def is_valid_pgn(content):
