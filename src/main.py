@@ -1,4 +1,4 @@
-# System paths, regex, math operations
+#System paths, regex, math operations
 import sys
 import re
 import math
@@ -105,7 +105,7 @@ class ChessBoard(QWidget):
         x = start_x + col * self.square_size
         y = start_y + row * self.square_size
         renderer = self.svg_renderers[piece_type]
-        size = self.square_size * 0.9
+        size = self.square_size * 0.95
         offset = (self.square_size - size) / 2
         renderer.render(painter, QRectF(x + offset, y + offset, size, size))
 
@@ -137,11 +137,6 @@ class ChessBoard(QWidget):
                 print(f"Warning: Missing SVG for {piece_type} at {path}")
 
 
-    def _set_fish_position(self, moves):
-        if stockfish.is_fen_valid(moves):
-            stockfish.set_fen_position(moves)
-        else:
-            stockfish.set_position(moves)
 
 
     def get_current_position(self):
@@ -249,8 +244,8 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.chess_board)
 
         # Set Window Title, Size, and Icon
-        self.setWindowTitle("Chess Visualizer")
-        self.setWindowIcon(QIcon('./favicon.png'))
+        self.setWindowTitle("Fennec")
+        self.setWindowIcon(QIcon(''))
         self.setMinimumSize(900,700)
 
         # Main Widget
@@ -364,8 +359,42 @@ class MainWindow(QMainWindow):
 
     def load_fen_position(self, fen_string):
         """Loads a chess position based on a given FEN-string"""
-        print("Fen position loaded!")
-        pass
+        # Clear board
+        self.chess_board.pieces = {}
+        self.chess_board.positions_history = []
+        self.chess_board.current_move_index = -1
+        self.chess_board.is_opened = True
+        
+        if self._is_valid_fen(fen_string):
+            self._set_fish_position(fen_string)
+
+        # Parse FEN string
+        parts = fen_string.split()
+        position = parts[0]
+
+        # Set board according to string
+        row = 0
+        col = 0
+
+        for char in position:
+            if char == '/':
+                row += 1
+                col = 0
+            elif char.isdigit():
+                col += int(char)
+            else:
+                # Place a piece
+                color = 'w' if char.isupper() else 'b'
+                piece_type = char.upper() if char.isalpha() else char
+                self.chess_board.pieces[(row, col)] = color + piece_type
+                col += 1
+
+        # Update the UI
+        self.chess_board.update()
+
+        # Reset any move count label if it exists
+        if hasattr(self, 'turn_label'):
+           self.chess_board.update_move_count_label(self.turn_label)
 
 
     def _is_valid_fen(self, fen_string):
@@ -634,16 +663,29 @@ class MainWindow(QMainWindow):
         return center_frame
 
 
+    def _set_fish_position(self, moves):
+        """Sets a stockfish position for evaluation based on a passed in position (moves)"""
+        if self.stockfish.is_fen_valid(moves):
+            self.stockfish.set_fen_position(moves)
+        else:
+            self.stockfish.set_position(moves)
+        self.update_stockfish_evaluation()
+
+
     def update_stockfish_evaluation(self):
         """Updates the stockfish evaluation bar and percentages"""
         # Ensure a move is loaded and that a game instance exists
         if not hasattr(self, 'chess_board') or not self.chess_board:
             return
+
+        print("stockfish_eval function reached")
+
+        # Ensure there is a position on the board
         current_position = self.chess_board.get_current_position()
         if not current_position:
             return
 
-        # Set position, get evaluation
+        # Pass stockfish board position, get evaluation
         self.stockfish.set_fen_position(current_position)
         evaluation = self.stockfish.get_evaluation()
 
@@ -654,17 +696,17 @@ class MainWindow(QMainWindow):
         else:
             self.best_move_label.setText("Best Move: N/A")
 
-        # Calculate win percentage
-        win_percentage = 50     # Good default value
+        # Calculate win percentages
+        win_percentage = 50
         if evaluation['type'] == 'cp':
             advantage = evaluation['value'] / 100.0
             win_percentage = 50 + 50 * (2 / (1 + math.exp(-0.5 * advantage)) - 1)
         elif evaluation['type'] == 'mate':  # Checkmate found
             # If mate is found, give a high percentage to the winning side
             if evaluation['value'] > 0:
-                win_percentage = 99  # White wins (positive mate)
+                win_percentage = 99
             else:
-                win_percentage = 1   # Black wins (negative mate)
+                win_percentage = 1
 
             # Ensure win percentage is within bounds
             win_percentage = max(1, min(99, win_percentage))
@@ -675,22 +717,9 @@ class MainWindow(QMainWindow):
             # Update percentage labels
             white_percentage = win_percentage
             black_percentage = 100 - white_percentage
-
             self.white_percentage.setText(f"{int(white_percentage)}%")
             self.black_percentage.setText(f"{int(black_percentage)}%")
 
-            # Style the progress bar based on advantage
-            if white_percentage > 55:
-                # White advantage - use white color gradient
-                value = int((white_percentage - 50) * 2.55)  # Scale to 0-255
-                self.evaluation_bar.setStyleSheet(f"QProgressBar::chunk {{ background-color: rgb(255, 255, 255); }}")
-            elif black_percentage > 55:
-                # Black advantage - use black color gradient
-                value = int((black_percentage - 50) * 2.55)  # Scale to 0-255
-                self.evaluation_bar.setStyleSheet(f"QProgressBar::chunk {{ background-color: rgb(0, 0, 0); }}")
-            else:
-                # Even game (approximately)
-                self.evaluation_bar.setStyleSheet(f"QProgressBar::chunk {{ background-color: rgb(180, 180, 180); }}")
 
 
     def change_window_theme(self):
