@@ -20,7 +20,8 @@ from PyQt6.QtSvg import QSvgRenderer
 from PyQt6.QtCore import (Qt, QRectF, QPoint)
 
 # help_window.py, theme_window.py
-from help_window import HelpWindow
+from help_windows import PGNWindow
+from help_windows import FENWindow
 from theme_window import ThemeWindow
 from chess_board import ChessBoard
 
@@ -28,7 +29,8 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.chess_board = ChessBoard()
-        self.help_window = HelpWindow()
+        self.help_window = PGNWindow()
+        self.fen_window = FENWindow()
         self.theme_window = ThemeWindow()
         self.game_info = None
         self.prevMoveShortcut = None
@@ -58,7 +60,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.chess_board)
 
         # Set Window Title, Size, and Icon
-        self.setWindowTitle("Fennec")
+        self.setWindowTitle("FENnec")
         self.setWindowIcon(QIcon(''))
         self.setMinimumSize(900,700)
 
@@ -80,9 +82,9 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(main_widget)
 
 
-    def show_help_window(self, checked):
+    def show_pgn_window(self, checked):
         """Shows the help window, allowing the user to educate themselves"""
-        self.w = HelpWindow()
+        self.w = PGNWindow()
 
         # Change positioning of window for better experience
         main_center = QPoint(self.x() + self.width() // 2, self.y() + self.height() // 2)
@@ -90,7 +92,19 @@ class MainWindow(QMainWindow):
         child_y = main_center.y() - self.w.height() // 2
         self.w.move(child_x,child_y)
 
-        # Show window (self keeps it perpetual)
+        self.w.show()
+
+
+    def show_fen_window(self, checked):
+        """Shows the help window, allowing the user to educate themselves"""
+        self.w = FENWindow()
+
+        # Change positioning of window for better experience
+        main_center = QPoint(self.x() + self.width() // 2, self.y() + self.height() // 2)
+        child_x = main_center.x() - self.w.width() // 2
+        child_y = main_center.y() - self.w.height() // 2
+        self.w.move(child_x,child_y)
+
         self.w.show()
 
 
@@ -138,13 +152,13 @@ class MainWindow(QMainWindow):
         # "Help -> What is PGN?"
         what_is_pgn = QAction(QIcon('./assets/what_is.png'),
                                     '&What Is PGN?', self)
-        what_is_pgn.triggered.connect(self.show_help_window)
+        what_is_pgn.triggered.connect(self.show_pgn_window)
         help_menu.addAction(what_is_pgn)
 
         # "Help -> What is FEN?"
         what_is_fen = QAction(QIcon('./assets/what_is_fen.png'),
                                     '&What is FEN?', self)
-        what_is_fen.triggered.connect(self.show_help_window)
+        what_is_fen.triggered.connect(self.show_fen_window)
         help_menu.addAction(what_is_fen)
 
         # Return entire menu
