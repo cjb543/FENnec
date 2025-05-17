@@ -1,2 +1,40 @@
 <h3>What is PGN?</h3>
-    <p>PGN (Portable Game Notation)</p>
+<p><strong>PGN</strong> stands for <em>Portal Game Notation</em>. It's a plain text format for recording and sharing entire chess games in a human-readable and machine-parsable way.</p>
+
+
+<h2>Why Use PGN?</h2>
+<p>PGN is simple, standardized, and supports both metadata and move history. It's widely supported by chess engines, databases, GUIs, and web tools. It allows easy storage, review analysis, and transmission of complete games.</p>
+
+
+<h2>Basic Structure of a PGN File</h2>
+<p> A PGN file has two main parts:</p>
+<ol>
+    <li><strong>Tag pairs (metadata)</strong></li>
+    <li><strong>Movetext (the actual game)</strong></li>
+</ol>
+
+
+<h2> Example PGN </h2>
+<pre>
+[Event "Casual Game"]
+[Site "Local Club"]
+[Date "2023.01.15"]
+[Round "?"]
+[White "Alice"]
+[Black "Bob"]
+[Result "1-0"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5
+7. Bb3 d6 8. c3 O-O 9. h3 Nb8 10. d4 Nbd7 11. Nbd2 Bb7 1-0
+</pre>
+
+
+<h2>Explanation</h2>
+<ul>
+    <li><strong>Tag pairs</strong> use square brackets and contain key details about the game (players, location, result, etc.).</li>
+    <li><strong>Movetext</strong> lists the moves using Standard Algebraic Notation. Numbers indicate turn count. Game ends with the result: <code>1-0</code> (White wins), <code>0-1</code> (Black wins), or <code>1/2-1/2</code> (draw).</li>
+</ul>
+
+
+<h2>Summary</h2>
+<p>PGN is the de facto format for full-game representation in chess. It's human-readable, editable in any text editor, and supported across nearly all chess tools (including this one). Ideal for saving, sharing, and studying games.</p>

@@ -11,7 +11,7 @@ class PGNWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("What is PGN?")
-        self.setMinimumSize(480,640)
+        self.setMinimumSize(540,640)
         self.setup_pgn_window()
 
 
@@ -33,7 +33,7 @@ class FENWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("What is FEN?")
-        self.setMinimumSize(480,640)
+        self.setMinimumSize(540,640)
         self.setup_fen_window()
 
 

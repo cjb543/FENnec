@@ -1,1 +1,52 @@
 <h1> What is FEN? </h1>
+<p><strong>FEN</strong> stands for <em>Forsyth-Edwards Notation</em>. It's a standard notation for describing a specific chess position using a single line of text.</p>
+
+<h2>Structure of a FEN String</h2>
+<p>A FEN string consists of six fields, separated by spaces:</p>
+<ol>
+    <li><strong>Piece placement</strong></li>
+    <li><strong>Active color</strong></li>
+    <li><strong>Castling availability</strong></li>
+    <li><strong>En passant target square</strong></li>
+    <li><strong>Halfmove clock</strong></li>
+    <li><strong>Fullmove number</strong></li>
+</ol>
+
+<h2>Example FEN</h2>
+<p><code>rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1</code></p>
+
+<h2>Explanation of Each Part</h2>
+<ol>
+    <li><strong>Piece placemenet:</strong><br>
+        <pre>rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR</pre><br>
+        Describes the board from top (rank 8) to bottom (rank 1). Lowercase = black, uppercase = white. Numbers represent empty squares
+    </li><br>
+
+    <li><strong>Active color:</strong><br>
+        <pre>w</pre><br>
+        'w' = white to move, 'b' = black to move.
+    </li><br>
+
+    <li><strong>Castling availability:</strong><br>
+        <pre>KQkq</pre><br>
+        Letters indicate castling rights. 'K' = white kingside, 'Q' = white queenside, 'k' = black kingside, 'q' = black queenside. '-' means no castling rights.
+    </li><br>
+
+    <li><strong>En passant target square:</strong><br>
+        <pre>-</pre><br>
+        If a pawn has just moved two squares, the square it passed over is recorded here. Otherwise, it's '-'.
+    </li><br>
+
+    <li><strong>Halfmove clock:</strong><br>
+        <pre>0</pre><br>
+        Number of halfmoves since the last pawn move or capture (used for the fifty-move-rule).
+    </li><br>
+
+    <li><strong>Fullmove number:</strong><br>
+        <pre>1</pre><br>
+        Starts at 1, increments after black's move.
+    </li><br>
+</ol>
+
+<h2>Summary</h2>
+<p> FEN strings provide a compact, complete way to describe any legal chess position. They're essential for chess engines, game notation, and position analysis as seen in this program! </p>
