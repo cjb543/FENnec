@@ -60,3 +60,13 @@ QMenuBar {
 QProgressBar {
     max-height: 4px
 }
+
+QListWidget {
+    border: 1px solid #3c3c3c;
+    padding: 5px;
+}
+
+QListWidget {
+    padding: 8px;
+    border-bottom: 1px solid #2e2e2e;
+}

@@ -1,18 +1,7 @@
-# System paths, regex, math operations
-import sys
-import re
-import math
-
-# The G.O.A.T
-from stockfish import Stockfish
-
-# Project file paths
-from pathlib import Path
-
 # PyQt6 suite
 from PyQt6.QtWidgets import (QWidget, QLabel, QVBoxLayout, QHBoxLayout,
                              QMessageBox, QPushButton, QFileDialog, QLineEdit,
-                             QMainWindow, QApplication, QFrame, QGroupBox, QProgressBar)
+                             QMainWindow, QApplication, QFrame, QGroupBox, QProgressBar, QListWidget)
 from PyQt6.QtGui import (QShortcut, QKeySequence, QAction,
                          QIcon, QPainter, QColor, QFont,
                          QPen, QPainterPath, QFontDatabase)
@@ -29,8 +18,23 @@ class ThemeWindow(QWidget):
 
 
     def setup_theme_list(self):
-        """ List different themes in itemized format"""
+        """List different themes in itemized format"""
         layout = QVBoxLayout()
-        self.label = QLabel("Themes")
-        layout.addWidget(self.label)
+
+        self.themes_list = QListWidget()
+        self.themes_list.addItem("Classic")
+        self.themes_list.addItem("Retro")
+        self.themes_list.addItem("Catpuccin")
+        self.themes_list.addItem("Gruvbox")
+        self.themes_list.addItem("Grayscale")
+        self.themes_list.addItem("Lettering")
+        self.themes_list.addItem("Minimalist")
+
+
+        self.confirm_button = QPushButton("Confirm")
+        self.confirm_button.setStyleSheet("margin: 0px 70px 0px 70px;")
+
+        layout.addWidget(self.themes_list)
+        layout.addWidget(self.confirm_button)
+
         self.setLayout(layout)
