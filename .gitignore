@@ -71,3 +71,7 @@ doc/_build/
 
 # Log files
 *.log
+
+# Stockfish Dependencies (Included in releases page manually)
+stockfish
+Scripts

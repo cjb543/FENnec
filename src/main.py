@@ -1,7 +1,8 @@
-# System paths, regex, math operations
+# System paths, regex, math, os
 import sys
 import re
 import math
+import os
 
 # The G.O.A.T
 from stockfish import Stockfish
@@ -438,7 +439,12 @@ class MainWindow(QMainWindow):
 
     def summon_the_fish(self):
         """Initializes and parameterizes the local stockfish engine"""
-        self.stockfish = Stockfish("/usr/games/stockfish",depth=2,parameters={"Threads":2, "Minimum Thinking Time": 5})
+        if os.name == "posix":
+            self.stockfish = Stockfish("../stockfish/stockfish-linux",depth=2,parameters={"Threads":2, "Minimum Thinking Time": 5})
+        elif os.name == "nt":
+            self.stockfish = Stockfish("../stockfish/stockfish-windows.exe",depth=2,parameters={"Threads":2, "Minimum Thinking Time": 5})
+        else:
+            print("Incompatible OS")
 
 
     def create_center_panel(self):
