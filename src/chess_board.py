@@ -1,14 +1,7 @@
-# System paths, regex, math operations
-
-# The G.O.A.T
-
-# Project file paths
 from pathlib import Path
-
 from PyQt6.QtCore import (Qt, QRectF)
 from PyQt6.QtGui import (QPainter, QColor, QPen, QPainterPath, QMouseEvent)
 from PyQt6.QtSvg import QSvgRenderer
-# PyQt6 suite
 from PyQt6.QtWidgets import (QWidget, QLabel)
 
 # Chess square constants
@@ -87,7 +80,7 @@ class ChessBoard(QWidget):
             for col in range(8):
                 x = start_x + col * self.square_size
                 y = start_y + row * self.square_size
-                color = LIGHT_SQUARE_COLOR if (row + col) % 2 == 0 else DARK_SQUARE_COLOR
+                color = QColor(240,217,181) if (row + col) % 2 == 0 else QColor(181,136,99)
                 painter.fillRect(x, y, self.square_size, self.square_size, color)
 
 

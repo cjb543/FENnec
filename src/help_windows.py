@@ -1,6 +1,4 @@
-# PyQt6 suite
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QTextBrowser)
-
 
 class PGNWindow(QWidget):
     """PGN Help Window"""
