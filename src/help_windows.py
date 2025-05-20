@@ -1,10 +1,6 @@
 # PyQt6 suite
-from PyQt6.QtWidgets import (QWidget, QLabel, QVBoxLayout, QHBoxLayout,
-                             QMessageBox, QPushButton, QFileDialog, QLineEdit,
-                             QMainWindow, QApplication, QFrame, QGroupBox, QProgressBar, QTextBrowser)
-from PyQt6.QtGui import (QShortcut, QKeySequence, QAction,
-                         QIcon, QPainter, QColor, QFont,
-                         QPen, QPainterPath, QFontDatabase)
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QTextBrowser)
+
 
 class PGNWindow(QWidget):
     """PGN Help Window"""

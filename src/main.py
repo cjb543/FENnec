@@ -1,30 +1,27 @@
 # System paths, regex, math, os
-import sys
-import re
 import math
 import os
-
-# The G.O.A.T
-from stockfish import Stockfish
-
+import re
+import sys
 # Project file paths
 from pathlib import Path
 
+from PyQt6.QtCore import (Qt, QPoint)
+from PyQt6.QtGui import (QShortcut, QKeySequence, QAction,
+                         QIcon, QFont,
+                         QFontDatabase)
 # PyQt6 suite
 from PyQt6.QtWidgets import (QWidget, QLabel, QVBoxLayout, QHBoxLayout,
                              QMessageBox, QPushButton, QFileDialog, QLineEdit,
                              QMainWindow, QApplication, QFrame, QGroupBox, QProgressBar)
-from PyQt6.QtGui import (QShortcut, QKeySequence, QAction,
-                         QIcon, QPainter, QColor, QFont,
-                         QPen, QPainterPath, QFontDatabase)
-from PyQt6.QtSvg import QSvgRenderer
-from PyQt6.QtCore import (Qt, QRectF, QPoint)
-
+from chess_board import ChessBoard
+from help_windows import FENWindow
 # help_window.py, theme_window.py
 from help_windows import PGNWindow
-from help_windows import FENWindow
+# The G.O.A.T
+from stockfish import Stockfish
 from theme_window import ThemeWindow
-from chess_board import ChessBoard
+
 
 class MainWindow(QMainWindow):
     def __init__(self):

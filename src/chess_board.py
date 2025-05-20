@@ -1,24 +1,15 @@
 # System paths, regex, math operations
-import sys
-import re
-import math
 
 # The G.O.A.T
-from stockfish import Stockfish
 
 # Project file paths
 from pathlib import Path
 
-# PyQt6 suite
-from PyQt6.QtWidgets import (QWidget, QLabel, QVBoxLayout, QHBoxLayout,
-                             QMessageBox, QPushButton, QFileDialog, QLineEdit,
-                             QMainWindow, QApplication, QFrame, QGroupBox, QProgressBar)
-from PyQt6.QtGui import (QShortcut, QKeySequence, QAction,
-                         QIcon, QPainter, QColor, QFont,
-                         QPen, QPainterPath, QFontDatabase,
-                         QMouseEvent)
+from PyQt6.QtCore import (Qt, QRectF)
+from PyQt6.QtGui import (QPainter, QColor, QPen, QPainterPath, QMouseEvent)
 from PyQt6.QtSvg import QSvgRenderer
-from PyQt6.QtCore import (Qt, QRectF, QPoint)
+# PyQt6 suite
+from PyQt6.QtWidgets import (QWidget, QLabel)
 
 # Chess square constants
 LIGHT_SQUARE_COLOR = QColor(240, 217, 181)
