@@ -6,7 +6,7 @@ from pathlib import Path
 from PyQt6.QtCore import (Qt, QPoint)
 from PyQt6.QtGui import (QShortcut, QKeySequence, QAction,
                          QIcon, QFont,
-                         QFontDatabase)
+                         QFontDatabase, QIcon)
 from PyQt6.QtWidgets import (QWidget, QLabel, QVBoxLayout, QHBoxLayout,
                              QMessageBox, QPushButton, QFileDialog, QLineEdit,
                              QMainWindow, QApplication, QFrame, QGroupBox, QProgressBar)
@@ -325,51 +325,14 @@ class MainWindow(QMainWindow):
 
         # Game information section
         info_group = QGroupBox("Game Information")
-        info_group.setStyleSheet("padding-top: 16px;")
         info_group_layout = QVBoxLayout(info_group)
         info_group_layout.addStretch(1)
 
-        # Player 1 (White)
-        player1_container = QWidget()
-        player1_layout = QHBoxLayout(player1_container)
-        player1_layout.setContentsMargins(0, 0, 0, 0)
-        player1_image = QLabel()
-        player1_image.setFixedSize(60, 60)
-        player1_image.setStyleSheet("color: white")
-        player1_image.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        player1_image.setText("♔")
-        player1_image.setFont(QFont("Arial", 24))
-        player1_info = QWidget()
-        player1_info_layout = QVBoxLayout(player1_info)
-        player1_info_layout.setContentsMargins(0, 0, 0, 0)
+        # Additional game info
         self.white_name_label = QLabel("White:")
         self.white_elo_label = QLabel("Elo:")
-        player1_info_layout.addWidget(self.white_name_label)
-        player1_info_layout.addWidget(self.white_elo_label)
-        player1_layout.addWidget(player1_image)
-        player1_layout.addWidget(player1_info, 1)
-
-        # Player 2 (Black)
-        player2_container = QWidget()
-        player2_layout = QHBoxLayout(player2_container)
-        player2_layout.setContentsMargins(0, 0, 0, 0)
-        player2_image = QLabel()
-        player2_image.setFixedSize(60, 60)
-        player2_image.setStyleSheet("color: black;")
-        player2_image.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        player2_image.setText("♚")
-        player2_image.setFont(QFont("Arial", 24))
-        player2_info = QWidget()
-        player2_info_layout = QVBoxLayout(player2_info)
-        player2_info_layout.setContentsMargins(0, 0, 0, 0)
         self.black_name_label = QLabel("Black:")
         self.black_elo_label = QLabel("Elo:")
-        player2_info_layout.addWidget(self.black_name_label)
-        player2_info_layout.addWidget(self.black_elo_label)
-        player2_layout.addWidget(player2_image)
-        player2_layout.addWidget(player2_info, 1)
-
-        # Additional game info
         self.event_label = QLabel("Event:")
         self.date_label = QLabel("Date:")
         self.turn_label = QLabel("Turn:")
@@ -377,9 +340,10 @@ class MainWindow(QMainWindow):
         self.best_move_label = QLabel("Best Move:")
         self.evaluation_bar = QProgressBar()
         self.event_label.setWordWrap(True)
-        info_group_layout.addWidget(player1_container)
-        info_group_layout.addWidget(player2_container)
-        info_group_layout.addSpacing(10)
+        info_group_layout.addWidget(self.white_name_label)
+        info_group_layout.addWidget(self.white_elo_label)
+        info_group_layout.addWidget(self.black_name_label)
+        info_group_layout.addWidget(self.black_elo_label)
         info_group_layout.addWidget(self.event_label)
         info_group_layout.addWidget(self.date_label)
         info_group_layout.addWidget(self.turn_label)
@@ -418,10 +382,16 @@ class MainWindow(QMainWindow):
         fish_layout.addLayout(percentages_layout)
         fish_layout.addStretch(1)
 
+        # Capture Count
+        capture_count_group = QGroupBox("Capture Count")
+        capture_count_layout = QVBoxLayout(capture_count_group)
+        capture_count_layout.addStretch(1)
+
         # Add components to info panel
         info_layout.addWidget(info_group)
         info_layout.addWidget(import_group)
         info_layout.addWidget(fish_group)
+        info_layout.addWidget(capture_count_group)
         info_layout.addStretch(1)
 
         # Return entire information frame
@@ -957,8 +927,22 @@ if __name__ == "__main__":
     with open("./styles.qss", "r") as f:
         style = f.read()
         app.setStyleSheet(style)
-    
+
     # Run app
     window = MainWindow()
+
+    # Set Icons
+    if os.name == "posix":
+        window.setWindowIcon(QIcon("../assets/icon512x512ico.ico"))
+    elif os.name == "nt":
+        window.setWindowIcon(QIcon("../assets/icon512x512png.png"))
+    else:
+        print("Incompatible OS")
+
+    # Sets window-based icon to taskbar (I LOVE WINDOWS)
+    import ctypes
+    myappid ='cjb543.FENnec.FENnec.1.0'
+    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+
     window.show()
     app.exec()

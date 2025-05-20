@@ -13,7 +13,7 @@ QGroupBox {
     border: 1px solid #ccc;
     border-radius: 5px;
     margin-top: 10px;
-    padding-top: 20px;
+    padding-top: 10px;
 }
 
 QGroupBox::title {
