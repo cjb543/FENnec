@@ -1,21 +1,23 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QListWidget, QPushButton)
 from themes import ClassicTheme, RetroTheme, CatpuccinTheme, GruvboxTheme, GrayscaleTheme, LetteringTheme, MinimalistTheme
+from chess_board import ChessBoard
 
 theme_map = {
-    "Classic": ClassicTheme(),
-    "Retro": RetroTheme(),
-    "Catpuccin": CatpuccinTheme(),
-    "Gruvbox": GruvboxTheme(),
-    "Grayscale": GrayscaleTheme(),
-    "Lettering": LetteringTheme(),
-    "Minimalist": MinimalistTheme(),
+    "Classic": ClassicTheme,
+    "Retro": RetroTheme,
+    "Catpuccin": CatpuccinTheme,
+    "Gruvbox": GruvboxTheme,
+    "Grayscale": GrayscaleTheme,
+    "Lettering": LetteringTheme,
+    "Minimalist": MinimalistTheme,
 }
 
 
 class ThemeWindow(QWidget):
     """Theme/Color Scheme Window"""
-    def __init__(self):
+    def __init__(self, board: ChessBoard):
         super().__init__()
+        self.board = board
         self.confirm_button = None
         self.setWindowTitle("Themes")
         self.setMinimumSize(480,640)
@@ -46,29 +48,7 @@ class ThemeWindow(QWidget):
         selected_items = self.themes_list.selectedItems()
         if selected_items:
             theme_name = selected_items[0].text()
-            selected_theme = theme_map.get(theme_name)
-            if selected_theme:
-                self.apply_theme(selected_theme)
-                print(theme_name)
+            theme_cls = theme_map.get(theme_name)
+            if theme_cls:
+                self.apply_theme(theme_cls)
                 self.close()
-
-
-    def apply_theme(self, selected_theme):
-        match selected_theme:
-            case "Classic":
-                pass
-            case "Retro":
-                pass
-            case "Catpuccin":
-                pass
-            case "Gruvbox":
-                pass
-            case "Grayscale":
-                pass
-            case "Lettering":
-                pass
-            case "Minimalist":
-                pass
-            case _:
-                pass
-        pass
