@@ -520,16 +520,11 @@ class MainWindow(QMainWindow):
 
     def change_window_theme(self):
         """Opens a program windw to allow the user to change board themes"""
-        # Open the general theme window for selecting
         self.w = ThemeWindow()
-
-        # Change positioning of window for better experience
         main_center = QPoint(self.x() + self.width() // 2, self.y() + self.height() // 2)
         child_x = main_center.x() - self.w.width() // 2
         child_y = main_center.y() - self.w.height() // 2
         self.w.move(child_x,child_y)
-
-        # Show window (self keeps it perpetual)
         self.w.show()
 
 
@@ -595,7 +590,7 @@ class MainWindow(QMainWindow):
         self.chess_board.update_move_count_label(self.turn_label)
         self.update_stockfish_evaluation()
 
-# Static processing functions
+
 def is_valid_pgn(content):
     """Determines if a PGN file has valid formatting"""
     if not re.search(r'\[.+]', content):
@@ -932,17 +927,15 @@ if __name__ == "__main__":
     window = MainWindow()
 
     # Set Icons
-    if os.name == "posix":
+    if sys.platform == "win32":
         window.setWindowIcon(QIcon("../assets/icon512x512ico.ico"))
-    elif os.name == "nt":
+        import ctypes
+        myappid ='cjb543.FENnec.FENnec.1.0'
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+    elif sys.platform.startswith("linux"):
         window.setWindowIcon(QIcon("../assets/icon512x512png.png"))
     else:
         print("Incompatible OS")
-
-    # Sets window-based icon to taskbar (I LOVE WINDOWS)
-    import ctypes
-    myappid ='cjb543.FENnec.FENnec.1.0'
-    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
-
+    
     window.show()
     app.exec()

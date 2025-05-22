@@ -54,4 +54,21 @@ class ThemeWindow(QWidget):
 
 
     def apply_theme(self, selected_theme):
+        match selected_theme:
+            case "Classic":
+                pass
+            case "Retro":
+                pass
+            case "Catpuccin":
+                pass
+            case "Gruvbox":
+                pass
+            case "Grayscale":
+                pass
+            case "Lettering":
+                pass
+            case "Minimalist":
+                pass
+            case _:
+                pass
         pass
