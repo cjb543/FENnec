@@ -12,26 +12,6 @@ from PyQt6.QtWidgets import (QWidget, QLabel, QVBoxLayout, QHBoxLayout,
                              QMainWindow, QApplication, QFrame, QGroupBox, QProgressBar)
 
 
-def process_pgn(self, pgn_content):
-    """Fills the game_info list with PGN content"""
-    game_info = extract_game_info(pgn_content)
-    self.parse_pgn(pgn_content)
-    self.reset_to_start()
-    return game_info
-
-
-def parse_pgn(self,pgn_content):
-    """Parses the supplied PGN file"""
-    self.setup_starting_position()
-    moves_text = extract_moves_from_pgn(pgn_content)
-    moves = extract_moves_list(moves_text)
-    positions = generate_positions_from_moves(moves, self.pieces.copy())
-    self.positions_history = positions
-    self.is_opened = True
-    self.current_move_index = -1
-    self.update()
-
-
 def is_valid_pgn(content):
     """Determines if a PGN file has valid formatting"""
     if not re.search(r'\[.+]', content):
@@ -194,26 +174,6 @@ def find_pawn_source(move_data, position, player):
             return capture_square
 
     return None
-
-
-def process_pgn(self, pgn_content):
-    """Fills the game_info list with PGN content"""
-    game_info = extract_game_info(pgn_content)
-    self.parse_pgn(pgn_content)
-    self.reset_to_start()
-    return game_info
-
-
-def parse_pgn(self,pgn_content):
-    """Parses the supplied PGN file"""
-    self.setup_starting_position()
-    moves_text = extract_moves_from_pgn(pgn_content)
-    moves = extract_moves_list(moves_text)
-    positions = generate_positions_from_moves(moves, self.pieces.copy())
-    self.positions_history = positions
-    self.is_opened = True
-    self.current_move_index = -1
-    self.update()
 
 
 def can_piece_move_to_target(piece_type, row, col, target_row, target_col,

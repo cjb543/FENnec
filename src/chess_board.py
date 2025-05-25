@@ -3,20 +3,15 @@ from PyQt6.QtCore import (Qt, QRectF)
 from PyQt6.QtGui import (QPainter, QColor, QPen, QPainterPath, QMouseEvent)
 from PyQt6.QtSvg import QSvgRenderer
 from PyQt6.QtWidgets import (QWidget, QLabel)
-from themes import ClassicTheme, RetroTheme, CatpuccinTheme, GruvboxTheme, GrayscaleTheme, LetteringTheme, MinimalistTheme
 
-# Chess square constants
-LIGHT_SQUARE_COLOR = QColor(240, 217, 181)
-DARK_SQUARE_COLOR = QColor(181, 136, 99)
+SQUARE_SIZE_DEFAULT = 38
 
 class ChessBoard(QWidget):
-    SQUARE_SIZE_DEFAULT = 38
-    PIECE_SIZE_RATIO = 0.9
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.current_theme = ClassicTheme()
+        self.current_theme = ThemeBase()
         self.svg_renderers = {}
-        self.square_size = self.SQUARE_SIZE_DEFAULT
+        self.square_size = SQUARE_SIZE_DEFAULT
         self.board_size = self.square_size * 8
         self.current_move_index = -1
         self.is_opened = False
@@ -36,6 +31,15 @@ class ChessBoard(QWidget):
         self._load_piece_images()
 
 
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        start_x = (self.width() - self.board_size) // 2
+        start_y = (self.height() - self.board_size) // 2
+        self._draw_board_squares(painter, start_x, start_y)
+        self._draw_pieces(painter, start_x, start_y)
+        painter.end()
+
+
     def apply_theme(self, theme_cls):
         self.current_theme = theme_cls()
         self.update()
@@ -43,12 +47,12 @@ class ChessBoard(QWidget):
 
     def _draw_board_squares(self, painter, start_x, start_y):
         self.current_theme.square_size = self.square_size
-        self.current_theme._draw-_board_squares(painter, start_x, start_y)
+        self.current_theme._draw_board_squares(painter, start_x, start_y)
 
 
     def _draw_pieces(self, painter, start_x, start_y):
         self.current_theme.square_size = self.square_size
-        self.current_theme._draw_pieces(painter, start_x, start_y)
+        self.current_theme._draw_pieces(painter, start_x, start_y, self)
 
 
     def mousePressEvent(self, event: QMouseEvent):
@@ -70,11 +74,21 @@ class ChessBoard(QWidget):
         self.current_move_index = -1
 
 
+    def parse_pgn(self, pgn_content):
+        """Parses the supplied PGN file"""
+        self.setup_starting_position()
+        moves = extract_moves_list(moves_text)
+        positions = generate_positions_from_moves(moves, self.pieces.copy())
+        self.positions_history = positions
+        self.is_opened = True
+        self.current_move_index = -1
+        self.update()
+
+
     def _load_piece_images(self):
         """Load SVG renderers for chess piece images."""
         piece_types = ["wP", "wR", "wN", "wB", "wQ", "wK", "bP", "bR", "bN", "bB", "bQ", "bK"]
-        assets_dir = Path(__file__).parent.parent / "assets"
-
+        assets_dir = Path(__file__).parent.parent / "assets" / "classic-theme"
         for piece_type in piece_types:
             path = assets_dir / f"{piece_type}.svg"
             if path.exists():
@@ -128,26 +142,6 @@ class ChessBoard(QWidget):
         return len(self.positions_history)
 
 
-    def process_pgn(self, pgn_content):
-        """Fills the game_info list with PGN content"""
-        game_info = extract_game_info(pgn_content)
-        self.parse_pgn(pgn_content)
-        self.reset_to_start()
-        return game_info
-
-
-    def parse_pgn(self,pgn_content):
-        """Parses the supplied PGN file"""
-        self.setup_starting_position()
-        moves_text = extract_moves_from_pgn(pgn_content)
-        moves = extract_moves_list(moves_text)
-        positions = generate_positions_from_moves(moves, self.pieces.copy())
-        self.positions_history = positions
-        self.is_opened = True
-        self.current_move_index = -1
-        self.update()
-
-
     def update_move_count_label(self, label_widget: QLabel):
         """Update the turn label to show the current move count and total moves."""
         current_move = self.current_move_index + 1
@@ -161,3 +155,279 @@ class ChessBoard(QWidget):
         self.board_unlocked = True
         self.selected_square = None
     pass
+
+
+class ThemeBase:
+    def __init__(self):
+        self.svg_renderers = {}
+        self.assets_dir = ""
+
+
+    def _draw_board_squares(self, painter, start_x, start_y):
+        """Draw the chessboard squares."""
+        for row in range(8):
+            for col in range(8):
+                x = start_x + col * self.square_size
+                y = start_y + row * self.square_size
+                color = QColor(240,217,181) if (row + col) % 2 == 0 else QColor(181,136,99)
+                painter.fillRect(x, y, self.square_size, self.square_size, color)
+
+
+    def _load_piece_images(self):
+        """Load SVG renderers for chess piece images."""
+        piece_types = ["wP", "wR", "wN", "wB", "wQ", "wK", "bP", "bR", "bN", "bB", "bQ", "bK"]
+        self.assets_dir = Path(__file__).parent.parent / "assets" / "classic-theme"
+        for piece_type in piece_types:
+            path = self.assets_dir / f"{piece_type}.svg"
+            if path.exists():
+                board.svg_renderers[piece_type] = QSvgRenderer(str(path))
+            else:
+                print(f"Warning: Missing SVG for {piece_type} at {path}")
+
+
+    def _draw_pieces(self, painter, start_x, start_y, board):
+        """Draw the pieces on the board."""
+        self.display_position = board.get_current_position()
+        for (row, col), piece_type in self.display_position.items():
+            if piece_type in board.svg_renderers:
+                self._render_piece(painter, row, col, piece_type, start_x, start_y, board)
+
+
+    def _render_piece(self, painter, row, col, piece_type, start_x, start_y, board):
+        """Renders a single chess piece on the board."""
+        x = start_x + col * self.square_size
+        y = start_y + row * self.square_size
+        renderer = board.svg_renderers[piece_type]
+        size = self.square_size * 0.95
+        offset = (self.square_size - size) / 2
+        renderer.render(painter, QRectF(x + offset, y + offset, size, size))
+
+
+class RetroTheme(ThemeBase):
+    def __init__(self):
+        self.svg_renderers = {}
+        self.assets_dir = ""
+        self.square_size = SQUARE_SIZE_DEFAULT
+
+
+    def _draw_board_squares(self, painter, start_x, start_y):
+        """Draw the chessboard squares."""
+        for row in range(8):
+            for col in range(8):
+                x = start_x + col * self.square_size
+                y = start_y + row * self.square_size
+                color = QColor(78,231,0) if (row + col) % 2 == 0 else QColor(20,20,20)
+                painter.fillRect(x, y, self.square_size, self.square_size, color)
+
+
+    def _load_piece_images(self):
+        pass
+
+
+    def _draw_pieces(self, painter, start_x, start_y, board):
+        """Draw the pieces on the board."""
+        display_position = board.get_current_position()
+        for (row, col), piece_type in display_position.items():
+            if piece_type in board.svg_renderers:
+                self._render_piece(painter, row, col, piece_type, start_x, start_y, board)
+
+
+    def _render_piece(self, painter, row, col, piece_type, start_x, start_y, board):
+        """Renders a single chess piece on the board."""
+        x = start_x + col * self.square_size
+        y = start_y + row * self.square_size
+        renderer = board.svg_renderers[piece_type]
+        size = self.square_size * 0.95
+        offset = (self.square_size - size) / 2
+        renderer.render(painter, QRectF(x + offset, y + offset, size, size))
+
+
+class CatpuccinTheme(ThemeBase):
+    def __init__(self):
+        self.svg_renderers = {}
+        self.assets_dir = ""
+        self.square_size = SQUARE_SIZE_DEFAULT
+
+
+    def _draw_board_squares(self, painter, start_x, start_y):
+        """Draw the chessboard squares."""
+        for row in range(8):
+            for col in range(8):
+                x = start_x + col * self.square_size
+                y = start_y + row * self.square_size
+                color = QColor(138,66,69) if (row + col) % 2 == 0 else QColor(66,69,138)
+                painter.fillRect(x, y, self.square_size, self.square_size, color)
+
+
+    def _load_piece_images(self):
+        pass
+
+
+    def _draw_pieces(self, painter, start_x, start_y, board):
+        """Draw the pieces on the board."""
+        display_position = board.get_current_position()
+        for (row, col), piece_type in display_position.items():
+            if piece_type in board.svg_renderers:
+                self._render_piece(painter, row, col, piece_type, start_x, start_y, board)
+
+
+    def _render_piece(self, painter, row, col, piece_type, start_x, start_y, board):
+        """Renders a single chess piece on the board."""
+        x = start_x + col * self.square_size
+        y = start_y + row * self.square_size
+        renderer = board.svg_renderers[piece_type]
+        size = self.square_size * 0.95
+        offset = (self.square_size - size) / 2
+        renderer.render(painter, QRectF(x + offset, y + offset, size, size))
+
+
+class GruvboxTheme(ThemeBase):
+    def __init__(self):
+        self.svg_renderers = {}
+        self.assets_dir = ""
+
+
+    def _draw_board_squares(self, painter, start_x, start_y):
+        """Draw the chessboard squares."""
+        for row in range(8):
+            for col in range(8):
+                x = start_x + col * self.square_size
+                y = start_y + row * self.square_size
+                color = QColor(240,217,181) if (row + col) % 2 == 0 else QColor(181,136,99)
+                painter.fillRect(x, y, self.square_size, self.square_size, color)
+
+
+    def _load_piece_images(self):
+        pass
+
+
+    def _draw_pieces(self, painter, start_x, start_y, board):
+        """Draw the pieces on the board."""
+        display_position = board.get_current_position()
+        for (row, col), piece_type in display_position.items():
+            if piece_type in board.svg_renderers:
+                self._render_piece(painter, row, col, piece_type, start_x, start_y, board)
+
+
+    def _render_piece(self, painter, row, col, piece_type, start_x, start_y, board):
+        """Renders a single chess piece on the board."""
+        x = start_x + col * self.square_size
+        y = start_y + row * self.square_size
+        renderer = board.svg_renderers[piece_type]
+        size = self.square_size * 0.95
+        offset = (self.square_size - size) / 2
+        renderer.render(painter, QRectF(x + offset, y + offset, size, size))
+
+
+class GrayscaleTheme(ThemeBase):
+    def __init__(self):
+        self.svg_renderers = {}
+        self.assets_dir = ""
+
+
+    def _draw_board_squares(self, painter, start_x, start_y):
+        """Draw the chessboard squares."""
+        for row in range(8):
+            for col in range(8):
+                x = start_x + col * self.square_size
+                y = start_y + row * self.square_size
+                color = QColor(240,217,181) if (row + col) % 2 == 0 else QColor(181,136,99)
+                painter.fillRect(x, y, self.square_size, self.square_size, color)
+
+
+    def _load_piece_images(self):
+        pass
+
+
+    def _draw_pieces(self, painter, start_x, start_y, board):
+        """Draw the pieces on the board."""
+        display_position = board.get_current_position()
+        for (row, col), piece_type in display_position.items():
+            if piece_type in board.svg_renderers:
+                self._render_piece(painter, row, col, piece_type, start_x, start_y, board)
+
+
+    def _render_piece(self, painter, row, col, piece_type, start_x, start_y, board):
+        """Renders a single chess piece on the board."""
+        x = start_x + col * self.square_size
+        y = start_y + row * self.square_size
+        renderer = board.svg_renderers[piece_type]
+        size = self.square_size * 0.95
+        offset = (self.square_size - size) / 2
+        renderer.render(painter, QRectF(x + offset, y + offset, size, size))
+
+
+class LetteringTheme(ThemeBase):
+    def __init__(self):
+        self.svg_renderers = {}
+        self.assets_dir = ""
+
+
+    def _draw_board_squares(self, painter, start_x, start_y):
+        """Draw the chessboard squares."""
+        for row in range(8):
+            for col in range(8):
+                x = start_x + col * self.square_size
+                y = start_y + row * self.square_size
+                color = QColor(240,217,181) if (row + col) % 2 == 0 else QColor(181,136,99)
+                painter.fillRect(x, y, self.square_size, self.square_size, color)
+
+
+    def _load_piece_images(self):
+        pass
+
+
+    def _draw_pieces(self, painter, start_x, start_y, board):
+        """Draw the pieces on the board."""
+        display_position = board.get_current_position()
+        for (row, col), piece_type in display_position.items():
+            if piece_type in board.svg_renderers:
+                self._render_piece(painter, row, col, piece_type, start_x, start_y, board)
+
+
+    def _render_piece(self, painter, row, col, piece_type, start_x, start_y, board):
+        """Renders a single chess piece on the board."""
+        x = start_x + col * self.square_size
+        y = start_y + row * self.square_size
+        renderer = board.svg_renderers[piece_type]
+        size = self.square_size * 0.95
+        offset = (self.square_size - size) / 2
+        renderer.render(painter, QRectF(x + offset, y + offset, size, size))
+
+
+class MinimalistTheme(ThemeBase):
+    def __init__(self):
+        self.svg_renderers = {}
+        self.assets_dir = ""
+
+
+    def _draw_board_squares(self, painter, start_x, start_y):
+        """Draw the chessboard squares."""
+        for row in range(8):
+            for col in range(8):
+                x = start_x + col * self.square_size
+                y = start_y + row * self.square_size
+                color = QColor(240,217,181) if (row + col) % 2 == 0 else QColor(181,136,99)
+                painter.fillRect(x, y, self.square_size, self.square_size, color)
+
+
+    def _load_piece_images(self):
+        pass
+
+
+    def _draw_pieces(self, painter, start_x, start_y, board):
+        """Draw the pieces on the board."""
+        display_position = board.get_current_position()
+        for (row, col), piece_type in display_position.items():
+            if piece_type in board.svg_renderers:
+                self._render_piece(painter, row, col, piece_type, start_x, start_y, board)
+
+
+    def _render_piece(self, painter, row, col, piece_type, start_x, start_y, board):
+        """Renders a single chess piece on the board."""
+        x = start_x + col * self.square_size
+        y = start_y + row * self.square_size
+        renderer = board.svg_renderers[piece_type]
+        size = self.square_size * 0.95
+        offset = (self.square_size - size) / 2
+        renderer.render(painter, QRectF(x + offset, y + offset, size, size))
