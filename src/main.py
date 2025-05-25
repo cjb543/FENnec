@@ -16,7 +16,6 @@ from help_windows import PGNWindow
 from theme_window import ThemeWindow
 from processing import *
 
-
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -426,7 +425,7 @@ class MainWindow(QMainWindow):
         nav_layout.addWidget(last_move_button)
         nav_layout.addStretch(1)
 
-        # Add board and nav to same layout
+        # Add board and nav to the same layout
         center_layout.addWidget(self.chess_board, 1)
         center_layout.addWidget(nav_container)
 
