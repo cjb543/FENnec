@@ -52,7 +52,7 @@ class MainWindow(QMainWindow):
         # Set Window Title, Size, and Icon
         self.setWindowTitle("FENnec")
         self.setWindowIcon(QIcon(''))
-        self.setMinimumSize(900,700)
+        self.setFixedSize(900,700)
 
         # Main Widget
         main_widget = QWidget()

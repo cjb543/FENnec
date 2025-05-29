@@ -33,8 +33,17 @@ class ChessBoard(QWidget):
 
     def paintEvent(self, event):
         painter = QPainter(self)
+        self.square_size = min(self.width(), self.height()) // 8
+        self.board_size = self.square_size * 8
         start_x = (self.width() - self.board_size) // 2
         start_y = (self.height() - self.board_size) // 2
+
+        path = QPainterPath()
+        radius = self.square_size * 0.2
+        rect = QRectF(start_x, start_y, self.board_size, self.board_size)
+        path.addRoundedRect(rect, radius, radius)
+        painter.setClipPath(path)
+
         self._draw_board_squares(painter, start_x, start_y)
         self._draw_pieces(painter, start_x, start_y)
         painter.end()
