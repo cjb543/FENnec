@@ -11,14 +11,22 @@ from PyQt6.QtWidgets import (QWidget, QLabel, QVBoxLayout, QHBoxLayout,
                              QMessageBox, QPushButton, QFileDialog, QLineEdit,
                              QMainWindow, QApplication, QFrame, QGroupBox, QProgressBar)
 from chess_board import ChessBoard
-from help_windows import FENWindow
-from help_windows import PGNWindow
+from help_windows import FENWindow, PGNWindow
 from theme_window import ThemeWindow
-from processing import *
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.menu_bar = None
+        self.evaluation_bar = None
+        self.best_move_label = None
+        self.winner_label = None
+        self.w = None
+        self.is_opened = None
+        self.current_move_index = None
+        self.positions_history = None
+        self.selected_square = None
+        self.board_unlocked = None
         self.chess_board = ChessBoard()
         self.help_window = PGNWindow()
         self.fen_window = FENWindow()
@@ -42,7 +50,6 @@ class MainWindow(QMainWindow):
     def setup_ui(self):
         """Defines all UI elements"""
         central_widget = QWidget()
-        central_widget = QWidget()
         self.setCentralWidget(central_widget)
         layout = QHBoxLayout(central_widget)
 
@@ -58,8 +65,8 @@ class MainWindow(QMainWindow):
         main_widget = QWidget()
         main_layout = QHBoxLayout(main_widget)
 
-        # Create Menu Bar
-        menu_bar = self.create_menu_bar()
+        # Menu Bar
+        self.menu_bar = self.create_menu_bar()
 
         # Left side: Game info panel
         info_panel = self.create_info_panel()
@@ -72,7 +79,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(main_widget)
 
 
-    def show_pgn_window(self, checked):
+    def show_pgn_window(self):
         """Shows the help window, allowing the user to educate themselves"""
         self.w = PGNWindow()
         main_center = QPoint(self.x() + self.width() // 2, self.y() + self.height() // 2)
@@ -82,7 +89,7 @@ class MainWindow(QMainWindow):
         self.w.show()
 
 
-    def show_fen_window(self, checked):
+    def show_fen_window(self):
         """Shows the help window, allowing the user to educate themselves"""
         self.w = FENWindow()
         main_center = QPoint(self.x() + self.width() // 2, self.y() + self.height() // 2)
@@ -145,7 +152,6 @@ class MainWindow(QMainWindow):
         what_is_fen.triggered.connect(self.show_fen_window)
         help_menu.addAction(what_is_fen)
 
-        # Return entire menu
         return menu_bar
 
 
@@ -155,7 +161,7 @@ class MainWindow(QMainWindow):
         user_input = self.fen_input.text()
 
         # Validate provided string
-        if processing._is_valid_fen(user_input):
+        if _is_valid_fen(user_input):
             self.load_fen_position(user_input)
 
         # Print helpful error message when failed
@@ -204,77 +210,6 @@ class MainWindow(QMainWindow):
         # Reset any move count label if it exists
         if hasattr(self, 'turn_label'):
            self.chess_board.update_move_count_label(self.turn_label)
-
-
-    def _is_valid_fen(self, fen_string):
-        """Checks the validity of a supplied FEN-string"""
-        # Raw Size Constraints
-        if len(fen_string) < 28:
-            return False
-        if len(fen_string) > 106:
-            return False
-
-        # Split into parts
-        components = fen_string.split()
-
-        # Parts size constraint
-        if len(components) != 6:
-            return False
-
-        # All valid FEN strings consist of six components.
-        # They are assigned here.
-        # Each of these components have their own requirements
-        piece_placement, active_color, castling_rights, en_passant, halfmove_clock, fullmove_number = components
-
-        # Check if we have 8 rows
-        ranks = piece_placement.split('/')
-        if len(ranks) != 8:
-            return False
-
-        # Check for valid square content (valid piece/character?)
-        for rank in ranks:
-            squares_count = 0
-            for char in rank:
-                if char.isdigit():
-                    squares_count += int(char)
-                elif char.upper() in 'KQRBNP':
-                    squares_count += 1
-                else:
-                    return False
-            # Ensure we have 8 squares per row before continuing
-            if squares_count != 8:
-                return False
-
-        # Ensure we're working with white and black pieces
-        if active_color not in ['w','b']:
-            return False
-
-        # Ensure castling rights is correctly labeled
-        if not all(c in 'KQkq-' for c in castling_rights):
-            return False
-
-        if castling_rights != '-':
-            # No duplicate castling rights syntax
-            if len(set(castling_rights)) != len(castling_rights):
-                return False
-
-            # Ensure castling rights are in the correct order
-            valid_order = ''
-            for c in 'KQkq':
-                if c in castling_rights:
-                    valid_order += c
-            if castling_rights != valid_order:
-                return False
-
-        # Check en-passant square
-        if en_passant != '-':
-            if len(en_passant) != 2:
-                return False
-            if en_passant[0] not in 'abcdefgh' or en_passant[1] not in '36':
-                return False
-
-        # All checks pass
-        return True
 
 
     def handle_next_move_action(self):
@@ -466,7 +401,7 @@ class MainWindow(QMainWindow):
             with open(filepath, 'r') as file:
                 pgn_content = file.read()
             if is_valid_pgn(pgn_content):
-                self.game_info = process_pgn(pgn_content)
+                self.game_info = self.process_pgn(pgn_content)
                 self.update_labels()
             else:
                 QMessageBox.warning(self, "Invalid PGN", "The file does not contain valid PGN notation")
@@ -477,9 +412,26 @@ class MainWindow(QMainWindow):
     def process_pgn(self, pgn_content):
         """Fills the game_info list with PGN content"""
         game_info = extract_game_info(pgn_content)
-        parse_pgn(pgn_content)
+        self.parse_pgn(pgn_content)
         self.reset_to_start()
         return game_info
+
+
+    def reset_to_start(self):
+        """Resets the game back to the first move"""
+        self.current_move_index = -1
+        self.update()
+
+
+    def parse_pgn(self, pgn_content):
+        """Parses the supplied PGN file"""
+        self.chess_board.setup_starting_position()
+        moves = extract_moves_list(pgn_content)
+        positions = generate_positions_from_moves(moves, self.chess_board.pieces.copy())
+        self.chess_board.positions_history = positions
+        self.chess_board.is_opened = True
+        self.chess_board.current_move_index = -1
+        self.update()
 
 
     def update_labels(self):
@@ -525,6 +477,397 @@ class MainWindow(QMainWindow):
         self.board_unlocked = True
         self.selected_square = None
         pass
+
+
+def extract_game_info(pgn_content):
+    game_info = {
+        'white_player': 'N/A',
+        'white_elo': 'N/A',
+        'black_player': 'N/A',
+        'black_elo': 'N/A',
+        'date': 'N/A',
+        'event': 'N/A',
+        'winner': 'N/A'
+    }
+
+    # Find info panel patterns
+    white_player_pattern = r'\[White\s+"([^"]+)"\]'
+    white_elo_pattern = r'\[WhiteElo\s+"([^"]+)"\]'
+    black_player_pattern = r'\[Black\s+"([^"]+)"\]'
+    black_elo_pattern = r'\[BlackElo\s+"([^"]+)"\]'
+    date_pattern = r'\[Date\s+"([^"]+)"\]'
+    event_pattern = r'\[Event\s+"([^"]+)"\]'
+    result_pattern = r'\[Result\s+"([^"]+)"\]'
+
+    white_player_match = re.search(white_player_pattern, pgn_content)
+    if white_player_match:
+        full_name = white_player_match.group(1)
+        name_parts = full_name.split()[:3]  # 3 "words" long
+        name_parts = [part.replace(',', '') for part in name_parts][::1]
+        game_info['white_player'] = ' '.join(name_parts)
+
+    white_elo_match = re.search(white_elo_pattern, pgn_content)
+    if white_elo_match:
+        game_info['white_elo'] = white_elo_match.group(1)
+
+    black_player_match = re.search(black_player_pattern, pgn_content)
+    if black_player_match:
+        full_name = black_player_match.group(1)
+        name_parts = full_name.split()[:3]  # 3 "words" long
+        name_parts = [part.replace(',', '') for part in name_parts][::1]
+        game_info['black_player'] = ' '.join(name_parts)
+
+    black_elo_match = re.search(black_elo_pattern, pgn_content)
+    if black_elo_match:
+        game_info['black_elo'] = black_elo_match.group(1)
+
+    date_match = re.search(date_pattern, pgn_content)
+    if date_match:
+        game_info['date'] = date_match.group(1)
+
+    event_match = re.search(event_pattern, pgn_content)
+    if event_match:
+        game_info['event'] = event_match.group(1)
+
+    result_match = re.search(result_pattern, pgn_content)
+    if result_match:
+        result = result_match.group(1)
+        if result == "1-0":
+            game_info['winner'] = "White"
+        elif result == "0-1":
+            game_info['winner'] = "Black"
+        elif result == "1/2-1/2":
+            game_info['winner'] = "Draw"
+        else:
+            game_info['winner'] = "Unknown"
+
+    return game_info
+
+
+def _is_valid_fen(fen_string):
+    """Checks the validity of a supplied FEN-string"""
+    # Raw Size Constraints
+    if len(fen_string) < 28:
+        return False
+    if len(fen_string) > 106:
+        return False
+
+    # Split into parts
+    components = fen_string.split()
+
+    # Parts size constraint
+    if len(components) != 6:
+        return False
+
+    # All valid FEN strings consist of six components.
+    # They are assigned here.
+    # Each of these components have their own requirements
+    piece_placement, active_color, castling_rights, en_passant, halfmove_clock, fullmove_number = components
+
+    # Check if we have 8 rows
+    ranks = piece_placement.split('/')
+    if len(ranks) != 8:
+        return False
+
+    # Check for valid square content (valid piece/character?)
+    for rank in ranks:
+        squares_count = 0
+        for char in rank:
+            if char.isdigit():
+                squares_count += int(char)
+            elif char.upper() in 'KQRBNP':
+                squares_count += 1
+            else:
+                return False
+        # Ensure we have 8 squares per row before continuing
+        if squares_count != 8:
+            return False
+
+    # Ensure we're working with white and black pieces
+    if active_color not in ['w', 'b']:
+        return False
+
+    # Ensure castling rights is correctly labeled
+    if not all(c in 'KQkq-' for c in castling_rights):
+        return False
+
+    if castling_rights != '-':
+        # No duplicate castling rights syntax
+        if len(set(castling_rights)) != len(castling_rights):
+            return False
+
+        # Ensure castling rights are in the correct order
+        valid_order = ''
+        for c in 'KQkq':
+            if c in castling_rights:
+                valid_order += c
+        if castling_rights != valid_order:
+            return False
+
+    # Check en-passant square
+    if en_passant != '-':
+        if len(en_passant) != 2:
+            return False
+        if en_passant[0] not in 'abcdefgh' or en_passant[1] not in '36':
+            return False
+
+    # All checks pass
+    return True
+
+
+def is_valid_pgn(content):
+    """Determines if a PGN file has valid formatting"""
+    if not re.search(r'\[.+]', content):
+        return False
+    if not re.search(r'\d+\.', content):
+        return False
+    return True
+
+
+def extract_moves_from_pgn(pgn_content):
+    """Removes non-move info from PGN file"""
+    if '\n\n' in pgn_content:
+        return pgn_content.split('\n\n', 1)[1]
+    return pgn_content
+
+
+def extract_moves_list(moves_text):
+    """Returns a list of moves from PGN file"""
+    moves_text = re.sub(r'\{[^}]*}', '', moves_text)
+    moves_text = re.sub(r'\([^)]*\)', '', moves_text)
+    moves_text = re.sub(r'1-0|0-1|1/2-1/2|\*', '', moves_text)
+    move_pattern = r'(?:\d+\.+\s*)?([KQRBNP]?[a-h]?[1-8]?x?[a-h][1-8](?:=[QRBN])?|O-O(?:-O)?)'
+    moves = re.findall(move_pattern, moves_text)
+    return [move for move in moves if move.strip()]
+
+
+def apply_move_to_position(move, position, player):
+    """Applies the move data to the chess board"""
+    new_position = position.copy()
+    if move == "O-O":
+        if player == 'w':
+            if (7, 4) in new_position and (7, 7) in new_position:
+                new_position[(7, 6)] = new_position.pop((7, 4))
+                new_position[(7, 5)] = new_position.pop((7, 7))
+        else:
+            if (0, 4) in new_position and (0, 7) in new_position:
+                new_position[(0, 6)] = new_position.pop((0, 4))
+                new_position[(0, 5)] = new_position.pop((0, 7))
+        return new_position
+    if move == "O-O-O":
+        if player == 'w':
+            new_position[(7, 2)] = new_position.pop((7, 4))
+            new_position[(7, 3)] = new_position.pop((7, 0))
+        else:
+            new_position[(0, 2)] = new_position.pop((0, 4))
+            new_position[(0, 3)] = new_position.pop((0, 0))
+        return new_position
+
+    move_data = parse_move_notation(move)
+    source_square = find_source_square(move_data, new_position, player)
+    if source_square:
+        target_square = (move_data['target_row'], move_data['target_col'])
+        if target_square in new_position:
+            del new_position[target_square]
+        piece = new_position.pop(source_square)
+        if move_data['promotion']:
+            piece = player + move_data['promotion']
+        new_position[target_square] = piece
+    return new_position
+
+
+def parse_move_notation(move):
+    result: dict[str, str | None | bool | int] = {
+        'piece': 'P',
+        'source_file': None,
+        'source_rank': None,
+        'target_col': None,
+        'target_row': None,
+        'is_capture': 'x' in move,
+        'promotion': None
+    }
+
+    move = move.replace('+', '').replace('#', '')
+    if '=' in move:
+        move_part, promotion = move.split('=')
+        result['promotion'] = promotion
+        move = move_part
+    if move[0] in "KQRBNP":
+        result['piece'] = move[0]
+        move = move[1:]
+    target_file = move[-2]
+    target_rank = move[-1]
+    result['target_col'] = ord(target_file) - ord('a')
+    result['target_row'] = 8 - int(target_rank)
+    move = move[:-2]
+    if 'x' in move:
+        move = move.replace('x', '')
+    if len(move) > 0 and 'a' <= move[0] <= 'h':
+        result['source_file'] = ord(move[0]) - ord('a')
+    if len(move) > 0 and '1' <= move[-1] <= '8':
+        result['source_rank'] = 8 - int(move[-1])
+    return result
+
+
+def find_source_square(move_data, position, player):
+    target_row = move_data['target_row']
+    target_col = move_data['target_col']
+    piece = move_data['piece']
+    piece_code = player + piece
+    source_file = move_data['source_file']
+    source_rank = move_data['source_rank']
+    is_capture = move_data['is_capture']
+
+    # Handle pawn special cases first
+    if piece == 'P':
+        pawn_source = find_pawn_source(move_data, position, player)
+        if pawn_source:
+            return pawn_source
+    # Find all pieces of the correct type
+    candidates = []
+    for (row, col), board_piece in position.items():
+        if board_piece != piece_code:
+            continue
+
+        # Filter by source file/rank if specified
+        if source_file is not None and col != source_file:
+            continue
+        if source_rank is not None and row != source_rank:
+            continue
+
+        # Check if the piece can legally move to the target
+        if can_piece_move_to_target(piece, row, col, target_row,
+                                    target_col, position, player,
+                                    is_capture):
+            candidates.append((row, col))
+
+    if len(candidates) == 1:
+        return candidates[0]
+    elif len(candidates) > 1:
+        return candidates[0]
+
+    return None
+
+
+def find_pawn_source(move_data, position, player):
+    target_row = move_data['target_row']
+    target_col = move_data['target_col']
+    source_file = move_data['source_file']
+    is_capture = move_data['is_capture']
+
+    # Define direction and starting rank based on player color
+    direction = 1 if player == 'b' else -1
+    pawn_code = player + 'P'
+    starting_rank = 1 if player == 'b' else 6
+    double_move_rank = 3 if player == 'b' else 4
+
+    if source_file is None and not is_capture:
+        one_square = (target_row + direction, target_col)
+        if one_square in position and position[one_square] == pawn_code:
+            return one_square
+
+    if target_row == double_move_rank:
+        two_square = (starting_rank, target_col)
+        if two_square in position and position[two_square] == pawn_code:
+            return two_square
+
+    elif is_capture and source_file is not None:
+        capture_square = (target_row + direction, source_file)
+        if capture_square in position and position[capture_square] == pawn_code:
+            return capture_square
+
+    return None
+
+
+def can_piece_move_to_target(piece_type, row, col, target_row, target_col,
+                             position, player, is_capture):
+    # Pawn movement rules
+    if piece_type == 'P':
+        return can_pawn_move_to_target(row, col, target_row,
+                                       target_col, player, is_capture)
+    # Knight movement rules
+    elif piece_type == 'N':
+        return ((abs(row - target_row) == 2 and abs(col - target_col) == 1) or
+                (abs(row - target_row) == 1 and abs(col - target_col) == 2))
+    # Bishop movement rules
+    elif piece_type == 'B':
+        return (abs(row - target_row) == abs(col - target_col) and
+                is_diagonal_path_clear(position, row, col,
+                                       target_row, target_col))
+    # Rook movement rules
+    elif piece_type == 'R':
+        return ((row == target_row or col == target_col) and
+                is_straight_path_clear(position, row, col,
+                                       target_row, target_col))
+    # Queen movement rules
+    elif piece_type == 'Q':
+        if row == target_row or col == target_col:
+            return is_straight_path_clear(position, row, col,
+                                          target_row, target_col)
+        elif abs(row - target_row) == abs(col - target_col):
+            return is_diagonal_path_clear(position, row, col,
+                                          target_row, target_col)
+        return False
+    # King movement rules
+    elif piece_type == 'K':
+        return abs(row - target_row) <= 1 and abs(col - target_col) <= 1
+    return False
+
+
+def can_pawn_move_to_target(row, col, target_row,
+                            target_col, player, is_capture):
+    if not is_capture:
+        if player == 'w':
+            return row > target_row and col == target_col
+        else:
+            return row < target_row and col == target_col
+    else:
+        if player == 'w':
+            return row > target_row and abs(col - target_col) == 1
+        else:
+            return row < target_row and abs(col - target_col) == 1
+
+
+def is_diagonal_path_clear(position, start_row, start_col, end_row, end_col):
+    row_step = 1 if end_row > start_row else -1
+    col_step = 1 if end_col > start_col else -1
+    row, col = start_row + row_step, start_col + col_step
+    while (row, col) != (end_row, end_col):
+        if (row, col) in position:
+            return False
+        row += row_step
+        col += col_step
+    return True
+
+
+def is_straight_path_clear(position, start_row, start_col, end_row, end_col):
+    if start_row == end_row:
+        col_step = 1 if end_col > start_col else -1
+        for col in range(start_col + col_step, end_col, col_step):
+            if (start_row, col) in position:
+                return False
+    else:
+        row_step = 1 if end_row > start_row else -1
+        for row in range(start_row + row_step, end_row, row_step):
+            if (row, start_col) in position:
+                return False
+    return True
+
+
+def generate_positions_from_moves(moves, initial_position):
+    current_position = initial_position
+    current_player = 'w'
+    positions_history = []
+    for i, move in enumerate(moves):
+        try:
+            current_position = apply_move_to_position(move, current_position,
+                                                      current_player)
+            positions_history.append(current_position.copy())
+            current_player = 'b' if current_player == 'w' else 'w'
+        except Exception as e:
+            print(f"Error at move {i+1} ({move}): {e}")
+            break
+    return positions_history
 
 
 # Only run if called directly
