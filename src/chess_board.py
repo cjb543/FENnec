@@ -153,11 +153,6 @@ class ChessBoard(QWidget):
             label_widget.setText(f"({current_move}/{total_moves})")
 
 
-    def unlock_board(self):
-        """Allows the user to edit the chess board"""
-        self.board_unlocked = True
-        self.selected_square = None
-    pass
 
 
 class ThemeBase:

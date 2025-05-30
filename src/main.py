@@ -17,6 +17,10 @@ from theme_window import ThemeWindow
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.chess_board = ChessBoard()
+        self.help_window = PGNWindow()
+        self.fen_window = FENWindow()
+        self.theme_window = ThemeWindow(self.chess_board)
         self.menu_bar = None
         self.evaluation_bar = None
         self.best_move_label = None
@@ -26,11 +30,6 @@ class MainWindow(QMainWindow):
         self.current_move_index = None
         self.positions_history = None
         self.selected_square = None
-        self.board_unlocked = None
-        self.chess_board = ChessBoard()
-        self.help_window = PGNWindow()
-        self.fen_window = FENWindow()
-        self.theme_window = ThemeWindow(self.chess_board)
         self.game_info = None
         self.prevMoveShortcut = None
         self.nextMoveShortcut = None
@@ -120,7 +119,7 @@ class MainWindow(QMainWindow):
         # "Edit -> Modify Position"
         modify_position = QAction(QIcon('./assets/modify_position.png'),
                                         'Modify Position...', self)
-        modify_position.triggered.connect(self.chess_board.unlock_board)
+        modify_position.triggered.connect(self.unlock_board)
         modify_position.setStatusTip('Modify Position')
         modify_position.setShortcut('Ctrl+H')
         edit_menu.addAction(modify_position)
@@ -131,7 +130,7 @@ class MainWindow(QMainWindow):
         # "Settings -> Change Theme"
         change_theme = QAction(QIcon('./assets/change_theme.png'),
                                      '&Change Theme...', self)
-        change_theme.triggered.connect(self.change_window_theme)
+        change_theme.triggered.connect(self.open_theme_window)
         change_theme.setStatusTip('Change Theme')
         change_theme.setShortcut('Ctrl+T')
         settings_menu.addAction(change_theme)
@@ -239,10 +238,10 @@ class MainWindow(QMainWindow):
     def create_info_panel(self):
         """Creates the non-move information panel"""
         info_frame = QFrame()
+        info_frame.setContentsMargins(0,75,0,125)
         info_frame.setFrameShape(QFrame.Shape.StyledPanel)
         info_frame.setFrameShadow(QFrame.Shadow.Raised)
         info_layout = QVBoxLayout(info_frame)
-
         # Game information section
         info_group = QGroupBox("Game Information")
         info_group_layout = QVBoxLayout(info_group)
@@ -292,7 +291,6 @@ class MainWindow(QMainWindow):
         self.evaluation_bar.setValue(500)
         self.evaluation_bar.setTextVisible(False)
         fish_group = QGroupBox("Stockfish")
-        fish_group.setStyleSheet("margin-bottom: 6px")
         fish_layout = QVBoxLayout(fish_group)
         fish_layout.addWidget(self.best_move_label)
         fish_layout.addWidget(self.evaluation_bar)
@@ -303,15 +301,15 @@ class MainWindow(QMainWindow):
         fish_layout.addStretch(1)
 
         # Capture Count
-        capture_count_group = QGroupBox("Capture Count")
-        capture_count_layout = QVBoxLayout(capture_count_group)
-        capture_count_layout.addStretch(1)
+        # capture_count_group = QGroupBox("Capture Count")
+        # capture_count_layout = QVBoxLayout(capture_count_group)
+        # capture_count_layout.addStretch(1)
 
         # Add components to info panel
         info_layout.addWidget(info_group)
         info_layout.addWidget(import_group)
         info_layout.addWidget(fish_group)
-        info_layout.addWidget(capture_count_group)
+        # info_layout.addWidget(capture_count_group)
         info_layout.addStretch(1)
 
         # Return entire information frame
@@ -368,7 +366,7 @@ class MainWindow(QMainWindow):
         return center_frame
 
 
-    def change_window_theme(self):
+    def open_theme_window(self):
         """Opens a program window to allow the user to change board themes"""
         self.w = ThemeWindow(self.chess_board)
         main_center = QPoint(self.x() + self.width() // 2, self.y() + self.height() // 2)
@@ -471,14 +469,17 @@ class MainWindow(QMainWindow):
         if label_widget:
             label_widget.setText(f"({current_move}/{total_moves})")
 
-    # TODO:
+
     def unlock_board(self):
-        """Allows the user to edit the chess board"""
-        self.board_unlocked = True
-        self.selected_square = None
+        error_message = QMessageBox()
+        error_message.setWindowTitle("Error")
+        error_message.setIcon(QMessageBox.Icon.Critical)
+        error_message.setStandardButtons(QMessageBox.StandardButton.Ok)
+        error_message.setText("This feature is still WIP! Sorry...")
+        error_message.exec()
         pass
 
-
+# Static processing functions
 def extract_game_info(pgn_content):
     game_info = {
         'white_player': 'N/A',
