@@ -56,30 +56,7 @@ To send me feedback on this project, send me a DM on [Bluesky](https://bsky.app/
 <p align="center">
   <a><img alt="FENnec Screenshot" src="https://github.com/user-attachments/assets/2b5fdcec-2649-4a4f-b906-fe2889e0592d"></a>
 </p>
-
 <div align="center">
-
-## Build Process
-
-<table>
-  <tr>
-    <th>Windows</th>
-    <th>Linux</th>
-  </tr>
-  <tr>
-    <td>Download the latest zip file from the <a href="https://github.com/cjb543/FENnec/releases">Releases</a> page.</td>
-    <td>Download <code>fennec_x64_x86.tar.gz</code> from the <a href="https://github.com/cjb543/FENnec/releases">Releases</a> page.</td>
-  </tr>
-  <tr>
-    <td>Extract the zip file and run the executable (.exe)</td>
-    <td>Extract <code>tar xzvf fennec_x64_x86.tar.gz</code></td>
-  </tr>
-  <tr>
-    <td></td>
-    <td>Run <code>./fennec_x64_x86.tar.gz/bin/fennec</code></td>
-  </tr>
-</table>
-
 </div>
 
 

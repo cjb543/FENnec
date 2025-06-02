@@ -19,7 +19,7 @@ class MainWindow(QMainWindow):
         self.uci_pointer = 0
         self.uci_moves = None
         self.current_fen = ""
-        self.stockfish = Stockfish("/Users/benso/Documents/FENnec/resources/stockfish/stockfish-windows/stockfish.exe")
+        self.stockfish = Stockfish("../resources/stockfish/stockfish-windows/stockfish.exe")
         self.chess_board = ChessBoard()
         self.Worker = Worker(self)
         self.WorkerSignals = WorkerSignals()
