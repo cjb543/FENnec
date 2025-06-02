@@ -52,11 +52,9 @@ class ThemeWindow(QWidget):
 
     def handle_confirm(self):
         selected_items = self.themes_list.selectedItems()
-
         if selected_items:
             theme_name = selected_items[0].text()
             theme_cls = self.theme_map.get(theme_name)
-
         match theme_name:
             case "RetroTheme":
                 self.assets_dir = Path(__file__).parent.parent / "assets" / "retro-theme"
@@ -72,9 +70,6 @@ class ThemeWindow(QWidget):
                 self.assets_dir = Path(__file__).parent.parent / "assets" / "minimalist-theme"
             case _:
                 self.assets_dir = Path(__file__).parent.parent / "assets" / "classic-theme"
-
         if theme_cls:
             self.chess_board.apply_theme(theme_cls)
             self.close()
-
-

@@ -1,11 +1,10 @@
 from pathlib import Path
-
 from PyQt6.QtCore import (Qt, QRectF)
 from PyQt6.QtGui import (QPainter, QColor, QPainterPath)
 from PyQt6.QtSvg import QSvgRenderer
 from PyQt6.QtWidgets import (QWidget, QLabel)
-
 SQUARE_SIZE_DEFAULT = 38
+
 
 class ChessBoard(QWidget):
     def __init__(self, parent=None):
@@ -26,7 +25,6 @@ class ChessBoard(QWidget):
 
 
     def _initialize_board(self):
-        """Initialize board properties and state."""
         self.setMinimumSize(320, 320)
         self.setup_starting_position()
         self._load_piece_images()
@@ -38,13 +36,11 @@ class ChessBoard(QWidget):
         self.board_size = self.square_size * 8
         start_x = (self.width() - self.board_size) // 2
         start_y = (self.height() - self.board_size) // 2
-
         path = QPainterPath()
         radius = self.square_size * 0.2
         rect = QRectF(start_x, start_y, self.board_size, self.board_size)
         path.addRoundedRect(rect, radius, radius)
         painter.setClipPath(path)
-
         self._draw_board_squares(painter, start_x, start_y)
         self._draw_pieces(painter, start_x, start_y)
         painter.end()
@@ -79,7 +75,6 @@ class ChessBoard(QWidget):
 
 
     def parse_pgn(self, pgn_content):
-        """Parses the supplied PGN file"""
         self.setup_starting_position()
         moves = extract_moves_list(pgn_content)
         positions = generate_positions_from_moves(moves, self.pieces.copy())
@@ -90,7 +85,6 @@ class ChessBoard(QWidget):
 
 
     def _load_piece_images(self):
-        """Load SVG renderers for chess piece images."""
         piece_types = ["wP", "wR", "wN", "wB", "wQ", "wK", "bP", "bR", "bN", "bB", "bQ", "bK"]
         assets_dir = Path(__file__).parent.parent / "assets" / "classic-theme"
         for piece_type in piece_types:
@@ -102,7 +96,6 @@ class ChessBoard(QWidget):
 
 
     def get_current_position(self):
-        """Get the current position of the pieces."""
         if self.current_move_index == -1:
             return self.pieces
         elif 0 <= self.current_move_index < len(self.positions_history):
@@ -111,7 +104,6 @@ class ChessBoard(QWidget):
 
 
     def next_move(self):
-        """Moves the game forward 1 move"""
         if self.current_move_index < len(self.positions_history) - 1:
             self.current_move_index += 1
             self.update()
@@ -120,7 +112,6 @@ class ChessBoard(QWidget):
 
 
     def previous_move(self):
-        """Moves the game back 1 move"""
         if self.current_move_index >= 0:
             self.current_move_index -= 1
             self.update()
@@ -129,25 +120,21 @@ class ChessBoard(QWidget):
 
 
     def last_move(self):
-        """Moves the game to the last move"""
         self.current_move_index = len(self.positions_history) - 1
         self.update()
         return True
 
 
     def reset_to_start(self):
-        """Resets the game back to the first move"""
         self.current_move_index = -1
         self.update()
 
 
     def get_move_count(self):
-        """Getter for current # of moves"""
         return len(self.positions_history)
 
 
     def update_move_count_label(self, label_widget: QLabel):
-        """Update the turn label to show the current move count and total moves."""
         current_move = self.current_move_index + 1
         total_moves = self.get_move_count()
         if label_widget:
@@ -335,12 +322,10 @@ class LetteringTheme(ThemeBase):
         font = painter.font()
         font.setPointSize(int(self.square_size * 0.6))
         painter.setFont(font)
-
         if piece_type[0] == 'w':
             painter.setPen(QColor(255, 255, 255))
         else:
             painter.setPen(QColor(0, 0, 0))
-
         painter.drawText(
             QRectF(x, y, self.square_size, self.square_size),
             Qt.AlignmentFlag.AlignCenter,
@@ -380,8 +365,3 @@ class MinimalistTheme(ThemeBase):
         size = self.square_size * 0.95
         offset = (self.square_size - size) / 2
         renderer.render(painter, QRectF(x + offset, y + offset, size, size))
-    def process_pgn(self, pgn_content):
-        game_info = self.extract_game_info(pgn_content)
-        self.parse_pgn(pgn_content)
-        self.reset_to_start()
-        return game_info

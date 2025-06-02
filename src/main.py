@@ -11,9 +11,13 @@ from chess_board import ChessBoard
 from help_windows import FENWindow, PGNWindow
 from theme_window import ThemeWindow
 
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.fen_mode = False
+        self.uci_pointer = 0
+        self.uci_moves = None
         self.current_fen = ""
         self.stockfish = Stockfish("/Users/benso/Documents/FENnec/resources/stockfish/stockfish-windows/stockfish.exe")
         self.chess_board = ChessBoard()
@@ -44,48 +48,29 @@ class MainWindow(QMainWindow):
         self.white_percentage = None
         self.black_percentage = None
         self.turn_label = None
-
         self.threadpool = QThreadPool()
-        thread_count = self.threadpool.maxThreadCount()
-        print(f"Multithreading with maximum {thread_count} threads")
-
         self.setup_ui()
 
 
     def setup_ui(self):
-        """Defines all UI elements"""
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         layout = QHBoxLayout(central_widget)
-
-        # Add chess board
         layout.addWidget(self.chess_board)
-
-        # Set Window Title, Size, and Icon
         self.setWindowTitle("FENnec")
         self.setWindowIcon(QIcon(''))
         self.setFixedSize(900,700)
-
-        # Main Widget
         main_widget = QWidget()
         main_layout = QHBoxLayout(main_widget)
-
-        # Menu Bar
         self.menu_bar = self.create_menu_bar()
-
-        # Left side: Game info panel
         info_panel = self.create_info_panel()
-
-        # Center: Chess board and controls
         center_panel = self.create_center_panel()
-
         main_layout.addWidget(info_panel,1)
         main_layout.addWidget(center_panel,3)
         self.setCentralWidget(main_widget)
 
 
     def show_pgn_window(self):
-        """Shows the help window, allowing the user to educate themselves"""
         self.w = PGNWindow()
         main_center = QPoint(self.x() + self.width() // 2, self.y() + self.height() // 2)
         child_x = main_center.x() - self.w.width() // 2
@@ -95,7 +80,6 @@ class MainWindow(QMainWindow):
 
 
     def show_fen_window(self):
-        """Shows the help window, allowing the user to educate themselves"""
         self.w = FENWindow()
         main_center = QPoint(self.x() + self.width() // 2, self.y() + self.height() // 2)
         child_x = main_center.x() - self.w.width() // 2
@@ -105,67 +89,46 @@ class MainWindow(QMainWindow):
 
 
     def create_menu_bar(self):
-        """Creates the programs menu bar"""
         menu_bar = self.menuBar()
-
-        # "File"
         file_menu = menu_bar.addMenu('&File')
-
-        # "File -> Import PGN..."
         import_pgn = QAction(QIcon('./assets/import_pgn.png'),
                                    'Import PGN...', self)
         import_pgn.triggered.connect(self.upload_file)
         import_pgn.setStatusTip('Import PGN')
         import_pgn.setShortcut('Ctrl+U')
         file_menu.addAction(import_pgn)
-
-        # "Edit"
         edit_menu = menu_bar.addMenu('&Edit')
-
-        # "Edit -> Modify Position"
         modify_position = QAction(QIcon('./assets/modify_position.png'),
                                         'Modify Position...', self)
         modify_position.triggered.connect(unlock_board)
         modify_position.setStatusTip('Modify Position')
         modify_position.setShortcut('Ctrl+H')
         edit_menu.addAction(modify_position)
-
-        # "Settings"
         settings_menu = menu_bar.addMenu('&Settings')
-
-        # "Settings -> Change Theme"
         change_theme = QAction(QIcon('./assets/change_theme.png'),
                                      '&Change Theme...', self)
         change_theme.triggered.connect(self.open_theme_window)
         change_theme.setStatusTip('Change Theme')
         change_theme.setShortcut('Ctrl+T')
         settings_menu.addAction(change_theme)
-
-        # "Help"
         help_menu = menu_bar.addMenu('&Help')
         help_menu.setStatusTip("Learn how to use this program")
-
-        # "Help -> What is PGN?"
         what_is_pgn = QAction(QIcon('./assets/what_is.png'),
                                     '&What Is PGN?', self)
         what_is_pgn.triggered.connect(self.show_pgn_window)
         help_menu.addAction(what_is_pgn)
-
-        # "Help -> What is FEN?"
         what_is_fen = QAction(QIcon('./assets/what_is_fen.png'),
                                     '&What is FEN?', self)
         what_is_fen.triggered.connect(self.show_fen_window)
         help_menu.addAction(what_is_fen)
-
         return menu_bar
 
-    def on_fen_editing_finished(self):
-        """Processes user input from the FEN string box"""
-        user_input = self.fen_input.text().strip()
 
+    def on_fen_editing_finished(self):
+        self.fen_mode = True
+        user_input = self.fen_input.text().strip()
         if not user_input:
             return
-
         try:
             if hasattr(self, "stockfish") and self.stockfish.is_fen_valid(user_input):
                 print("Valid FEN")
@@ -181,26 +144,18 @@ class MainWindow(QMainWindow):
                 error_message.exec()
         except Exception as e:
             print(f"Error checking FEN: {e}")
-
-
         self.fen_input.clear()
 
+
     def load_fen_position(self, fen_string):
-        """Loads a chess position based on a given FEN-string"""
-        # Clear board
         self.chess_board.pieces = {}
         self.chess_board.positions_history = []
         self.chess_board.current_move_index = -1
         self.chess_board.is_opened = True
-
-        # Parse FEN string
         parts = fen_string.split()
         position = parts[0]
-
-        # Set board according to string
         row = 0
         col = 0
-
         for char in position:
             if char == '/':
                 row += 1
@@ -208,57 +163,46 @@ class MainWindow(QMainWindow):
             elif char.isdigit():
                 col += int(char)
             else:
-                # Place a piece
                 color = 'w' if char.isupper() else 'b'
                 piece_type = char.upper() if char.isalpha() else char
                 self.chess_board.pieces[(row, col)] = color + piece_type
                 col += 1
-
-        # Update the UI
         self.chess_board.update()
-
-        # Reset any move count label if it exists
         if hasattr(self, 'turn_label'):
            self.chess_board.update_move_count_label(self.turn_label)
 
 
     def handle_next_move_action(self):
-        """Calls the next_move method and updates the game label accordingly"""
         if self.chess_board.next_move():
+            self.uci_pointer+=1
+            self.evaluate_position(self.uci_moves)
             self.chess_board.update_move_count_label(self.turn_label)
-
-
     def handle_previous_move_action(self):
-        """Calls the previous_move method and updates the game label accordingly"""
         if self.chess_board.previous_move():
+            self.uci_pointer-=1
+            self.evaluate_position(self.uci_moves)
             self.chess_board.update_move_count_label(self.turn_label)
-
-
     def handle_last_move_action(self):
-        """Calls the last_move method and updates the game label accordingly"""
         if self.chess_board.last_move():
+            self.uci_pointer = len(self.chess_board.positions_history)
+            self.evaluate_position(self.uci_moves)
             self.chess_board.update_move_count_label(self.turn_label)
-
-
     def handle_reset_action(self):
-        """Calls the reset_to_start method and updates the game label accordingly"""
         self.chess_board.reset_to_start()
+        self.uci_pointer = 0
+        self.evaluate_position(self.uci_moves)
         self.chess_board.update_move_count_label(self.turn_label)
 
 
     def create_info_panel(self):
-        """Creates the non-move information panel"""
         info_frame = QFrame()
         info_frame.setContentsMargins(0,75,0,125)
         info_frame.setFrameShape(QFrame.Shape.StyledPanel)
         info_frame.setFrameShadow(QFrame.Shadow.Raised)
         info_layout = QVBoxLayout(info_frame)
-        # Game information section
         info_group = QGroupBox("Game Information")
         info_group_layout = QVBoxLayout(info_group)
         info_group_layout.addStretch(1)
-
-        # Additional game info
         self.white_name_label = QLabel("White:")
         self.white_elo_label = QLabel("Elo:")
         self.black_name_label = QLabel("Black:")
@@ -278,8 +222,6 @@ class MainWindow(QMainWindow):
         info_group_layout.addWidget(self.date_label)
         info_group_layout.addWidget(self.turn_label)
         info_group_layout.addWidget(self.winner_label)
-
-        # PGN Import and FEN-string section
         import_group = QGroupBox("Import Game")
         import_layout = QVBoxLayout(import_group)
         self.fen_input = QLineEdit()
@@ -290,8 +232,6 @@ class MainWindow(QMainWindow):
         upload_button.clicked.connect(self.upload_file)
         import_layout.addWidget(self.fen_input)
         import_layout.addWidget(upload_button)
-
-        # Stockfish group
         self.white_percentage = QLabel("0%")
         self.white_percentage.setStyleSheet("font-size: 11px;")
         self.black_percentage = QLabel("0%")
@@ -310,75 +250,47 @@ class MainWindow(QMainWindow):
         percentages_layout.addWidget(self.black_percentage)
         fish_layout.addLayout(percentages_layout)
         fish_layout.addStretch(1)
-
-        # Capture Count
-        # capture_count_group = QGroupBox("Capture Count")
-        # capture_count_layout = QVBoxLayout(capture_count_group)
-        # capture_count_layout.addStretch(1)
-
-        # Add components to info panel
         info_layout.addWidget(info_group)
         info_layout.addWidget(import_group)
         info_layout.addWidget(fish_group)
-        # info_layout.addWidget(capture_count_group)
         info_layout.addStretch(1)
-
-        # Return entire information frame
         return info_frame
 
 
     def create_center_panel(self):
-        """Creates the panel containing the chess board, as well as arrow buttons"""
         center_frame = QFrame()
         center_layout = QVBoxLayout(center_frame)
-
-        # Arrow key layout
         nav_container = QWidget()
         nav_layout = QHBoxLayout(nav_container)
         nav_layout.setContentsMargins(0, 0, 0, 0)
-
-        # First Move (<<)
         first_move_button = QPushButton("⟪")
         first_move_button.setToolTip("First Move")
         first_move_button.clicked.connect(self.handle_reset_action)
-
-        # Previous Move (<-)
         previous_move_button = QPushButton("◂")
         previous_move_button.setToolTip("Previous Move")
         previous_move_button.clicked.connect(self.handle_previous_move_action)
         self.prevMoveShortcut = QShortcut(QKeySequence('Left'), self)
         self.prevMoveShortcut.activated.connect(self.handle_previous_move_action)
-
-        # Next Move (->)
         next_move_button = QPushButton("▸")
         next_move_button.setToolTip("Next Move")
         next_move_button.clicked.connect(self.handle_next_move_action)
         self.nextMoveShortcut = QShortcut(QKeySequence('Right'), self)
         self.nextMoveShortcut.activated.connect(self.handle_next_move_action)
-
-        # Last Move (>>)
         last_move_button = QPushButton("⟫")
         last_move_button.setToolTip("Last Move")
         last_move_button.clicked.connect(self.handle_last_move_action)
-
-        # Add to navigation layout
         nav_layout.addStretch(1)
         nav_layout.addWidget(first_move_button)
         nav_layout.addWidget(previous_move_button)
         nav_layout.addWidget(next_move_button)
         nav_layout.addWidget(last_move_button)
         nav_layout.addStretch(1)
-
-        # Add board and nav to the same layout
         center_layout.addWidget(self.chess_board, 1)
         center_layout.addWidget(nav_container)
-
-        # Return board and nav layout together
         return center_frame
 
 
     def open_theme_window(self):
-        """Opens a program window to allow the user to change board themes"""
         self.w = ThemeWindow(self.chess_board)
         main_center = QPoint(self.x() + self.width() // 2, self.y() + self.height() // 2)
         child_x = main_center.x() - self.w.width() // 2
@@ -388,7 +300,6 @@ class MainWindow(QMainWindow):
 
 
     def upload_file(self):
-        """Prompts the user to upload a PGN file"""
         documents_dir = str(Path.home() / "Documents")
         file_name = QFileDialog.getOpenFileName(
             self,
@@ -401,7 +312,6 @@ class MainWindow(QMainWindow):
 
 
     def load_file(self, filepath):
-        """Attempts to load the user-selected PGN file"""
         try:
             file_extension = Path(filepath).suffix.lower()
             if file_extension not in ['.pgn', '.txt']:
@@ -412,6 +322,8 @@ class MainWindow(QMainWindow):
             if is_valid_pgn(pgn_content):
                 self.game_info = self.process_pgn(pgn_content)
                 self.update_labels()
+                self.fen_mode = False
+                self.uci_pointer = 0
             else:
                 QMessageBox.warning(self, "Invalid PGN", "The file does not contain valid PGN notation")
         except Exception as e:
@@ -419,7 +331,6 @@ class MainWindow(QMainWindow):
 
 
     def process_pgn(self, pgn_content):
-        """Fills the game_info list with PGN content"""
         game_info = extract_game_info(pgn_content)
         self.parse_pgn(pgn_content)
         self.reset_to_start()
@@ -427,16 +338,17 @@ class MainWindow(QMainWindow):
 
 
     def reset_to_start(self):
-        """Resets the game back to the first move"""
         self.current_move_index = -1
         self.update()
 
 
     def parse_pgn(self, pgn_content):
-        """Parses the supplied PGN file"""
         self.chess_board.setup_starting_position()
         moves = extract_moves_list(pgn_content)
-        positions = generate_positions_from_moves(moves, self.chess_board.pieces.copy())
+        positions, uci_moves = generate_positions_from_moves(moves, self.chess_board.pieces.copy())
+        self.uci_moves = uci_moves
+        print (self.uci_moves)
+        self.evaluate_position(uci_moves)
         self.chess_board.positions_history = positions
         self.chess_board.is_opened = True
         self.chess_board.current_move_index = -1
@@ -444,7 +356,6 @@ class MainWindow(QMainWindow):
 
 
     def update_labels(self):
-        """Updates the UI labels with information from the loaded PGN game."""
         if hasattr(self, 'game_info') and isinstance(self.game_info, dict) and self.game_info:
             white_player = self.game_info.get('white_player', 'N/A')
             black_player = self.game_info.get('black_player', 'N/A')
@@ -453,8 +364,6 @@ class MainWindow(QMainWindow):
             game_date = self.game_info.get('date', 'N/A')
             game_event = self.game_info.get('event', 'N/A')
             winner = self.game_info.get('winner', 'N/A')
-
-            # Set all labels to their respective fields
             self.white_name_label.setText(f"White: {white_player}")
             self.black_name_label.setText(f"Black: {black_player}")
             self.white_elo_label.setText(f"Elo: {white_elo}")
@@ -474,29 +383,26 @@ class MainWindow(QMainWindow):
 
 
     def update_move_count_label(self, label_widget: QLabel):
-        """Update the turn label to show the current move count and total moves."""
         current_move = self.current_move_index + 1
         total_moves = self.get_move_count()
         if label_widget:
             label_widget.setText(f"({current_move}/{total_moves})")
 
-    def evaluate_clicked(self):
-        # Example FEN from an opening
-        fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-        self.evaluate_position(fen)
 
-    def evaluate_position(self, fen):
-        worker = Worker(self.evaluate_fen, fen)
+    def evaluate_position(self, fen_or_uci):
+        if self.fen_mode:
+            worker = Worker(self.evaluate_fen, fen_or_uci)
+        else:
+            worker = Worker(self.evaluate_uci)
         worker.signals.result.connect(self.update_stockfish_ui)
         self.threadpool.start(worker)
+
 
     def evaluate_fen(self, fen, progress_callback):
         print("Running in thread:", threading.current_thread().name)
         self.stockfish.set_fen_position(fen)
         eval_info = self.stockfish.get_evaluation()
         best_move = self.stockfish.get_best_move()
-
-
         if eval_info["type"] == "cp":
             cp = eval_info["value"]
             evaluation_score = max(min(cp, 1000), -1000)
@@ -504,11 +410,33 @@ class MainWindow(QMainWindow):
             evaluation_score = 1000 if eval_info["value"] > 0 else -1000
         else:
             evaluation_score = 0
-
         bar_value = int((evaluation_score + 1000) / 2)
         white_pct = max(0, min(100, int(50 + (evaluation_score / 20))))
         black_pct = 100 - white_pct
+        return {
+            "best_move": best_move,
+            "bar_value": bar_value,
+            "white_pct": white_pct,
+            "black_pct": black_pct,
+        }
 
+
+    def evaluate_uci(self, progress_callback):
+        print("Running in thread:", threading.current_thread().name)
+        print(self.uci_pointer)
+        self.stockfish.set_position(self.uci_moves[:self.uci_pointer])
+        eval_info = self.stockfish.get_evaluation()
+        best_move = self.stockfish.get_best_move()
+        if eval_info["type"] == "cp":
+            cp = eval_info["value"]
+            evaluation_score = max(min(cp, 1000), -1000)
+        elif eval_info["type"] == "mate":
+            evaluation_score = 1000 if eval_info["value"] > 0 else -1000
+        else:
+            evaluation_score = 0
+        bar_value = int((evaluation_score + 1000) / 2)
+        white_pct = max(0, min(100, int(50 + (evaluation_score / 20))))
+        black_pct = 100 - white_pct
         return {
             "best_move": best_move,
             "bar_value": bar_value,
@@ -540,6 +468,7 @@ class Worker(QRunnable):
         self.signals = WorkerSignals()
         self.kwargs["progress_callback"] = self.signals.progress
 
+
     @pyqtSlot()
     def run(self):
         try:
@@ -563,7 +492,10 @@ def unlock_board():
     error_message.exec()
 
 
-# Static processing functions
+def coord_to_square(row, col):
+    return chr(col + ord('a')) + str(8 - row)
+
+
 def extract_game_info(pgn_content):
     game_info = {
         'white_player': 'N/A',
@@ -574,8 +506,6 @@ def extract_game_info(pgn_content):
         'event': 'N/A',
         'winner': 'N/A'
     }
-
-    # Find info panel patterns
     white_player_pattern = r'\[White\s+"([^"]+)"\]'
     white_elo_pattern = r'\[WhiteElo\s+"([^"]+)"\]'
     black_player_pattern = r'\[Black\s+"([^"]+)"\]'
@@ -583,37 +513,30 @@ def extract_game_info(pgn_content):
     date_pattern = r'\[Date\s+"([^"]+)"\]'
     event_pattern = r'\[Event\s+"([^"]+)"\]'
     result_pattern = r'\[Result\s+"([^"]+)"\]'
-
     white_player_match = re.search(white_player_pattern, pgn_content)
     if white_player_match:
         full_name = white_player_match.group(1)
-        name_parts = full_name.split()[:3]  # 3 "words" long
+        name_parts = full_name.split()[:3]
         name_parts = [part.replace(',', '') for part in name_parts][::1]
         game_info['white_player'] = ' '.join(name_parts)
-
     white_elo_match = re.search(white_elo_pattern, pgn_content)
     if white_elo_match:
         game_info['white_elo'] = white_elo_match.group(1)
-
     black_player_match = re.search(black_player_pattern, pgn_content)
     if black_player_match:
         full_name = black_player_match.group(1)
-        name_parts = full_name.split()[:3]  # 3 "words" long
+        name_parts = full_name.split()[:3]
         name_parts = [part.replace(',', '') for part in name_parts][::1]
         game_info['black_player'] = ' '.join(name_parts)
-
     black_elo_match = re.search(black_elo_pattern, pgn_content)
     if black_elo_match:
         game_info['black_elo'] = black_elo_match.group(1)
-
     date_match = re.search(date_pattern, pgn_content)
     if date_match:
         game_info['date'] = date_match.group(1)
-
     event_match = re.search(event_pattern, pgn_content)
     if event_match:
         game_info['event'] = event_match.group(1)
-
     result_match = re.search(result_pattern, pgn_content)
     if result_match:
         result = result_match.group(1)
@@ -625,36 +548,21 @@ def extract_game_info(pgn_content):
             game_info['winner'] = "Draw"
         else:
             game_info['winner'] = "Unknown"
-
     return game_info
 
 
 def _is_valid_fen(fen_string):
-    """Checks the validity of a supplied FEN-string"""
-    # Raw Size Constraints
     if len(fen_string) < 28:
         return False
     if len(fen_string) > 106:
         return False
-
-    # Split into parts
     components = fen_string.split()
-
-    # Parts size constraint
     if len(components) != 6:
         return False
-
-    # All valid FEN strings consist of six components.
-    # They are assigned here.
-    # Each of these components have their own requirements
     piece_placement, active_color, castling_rights, en_passant, halfmove_clock, fullmove_number = components
-
-    # Check if we have 8 rows
     ranks = piece_placement.split('/')
     if len(ranks) != 8:
         return False
-
-    # Check for valid square content (valid piece/character?)
     for rank in ranks:
         squares_count = 0
         for char in rank:
@@ -664,44 +572,30 @@ def _is_valid_fen(fen_string):
                 squares_count += 1
             else:
                 return False
-        # Ensure we have 8 squares per row before continuing
         if squares_count != 8:
             return False
-
-    # Ensure we're working with white and black pieces
     if active_color not in ['w', 'b']:
         return False
-
-    # Ensure castling rights is correctly labeled
     if not all(c in 'KQkq-' for c in castling_rights):
         return False
-
     if castling_rights != '-':
-        # No duplicate castling rights syntax
         if len(set(castling_rights)) != len(castling_rights):
             return False
-
-        # Ensure castling rights are in the correct order
         valid_order = ''
         for c in 'KQkq':
             if c in castling_rights:
                 valid_order += c
         if castling_rights != valid_order:
             return False
-
-    # Check en-passant square
     if en_passant != '-':
         if len(en_passant) != 2:
             return False
         if en_passant[0] not in 'abcdefgh' or en_passant[1] not in '36':
             return False
-
-    # All checks pass
     return True
 
 
 def is_valid_pgn(content):
-    """Determines if a PGN file has valid formatting"""
     if not re.search(r'\[.+]', content):
         return False
     if not re.search(r'\d+\.', content):
@@ -710,24 +604,22 @@ def is_valid_pgn(content):
 
 
 def extract_moves_from_pgn(pgn_content):
-    """Removes non-move info from PGN file"""
     if '\n\n' in pgn_content:
         return pgn_content.split('\n\n', 1)[1]
     return pgn_content
 
 
 def extract_moves_list(moves_text):
-    """Returns a list of moves from PGN file"""
     moves_text = re.sub(r'\{[^}]*}', '', moves_text)
     moves_text = re.sub(r'\([^)]*\)', '', moves_text)
     moves_text = re.sub(r'1-0|0-1|1/2-1/2|\*', '', moves_text)
     move_pattern = r'(?:\d+\.+\s*)?([KQRBNP]?[a-h]?[1-8]?x?[a-h][1-8](?:=[QRBN])?|O-O(?:-O)?)'
     moves = re.findall(move_pattern, moves_text)
+    print ([move for move in moves if move.strip()])
     return [move for move in moves if move.strip()]
 
 
 def apply_move_to_position(move, position, player):
-    """Applies the move data to the chess board"""
     new_position = position.copy()
     if move == "O-O":
         if player == 'w':
@@ -747,7 +639,6 @@ def apply_move_to_position(move, position, player):
             new_position[(0, 2)] = new_position.pop((0, 4))
             new_position[(0, 3)] = new_position.pop((0, 0))
         return new_position
-
     move_data = parse_move_notation(move)
     source_square = find_source_square(move_data, new_position, player)
     if source_square:
@@ -771,7 +662,6 @@ def parse_move_notation(move):
         'is_capture': 'x' in move,
         'promotion': None
     }
-
     move = move.replace('+', '').replace('#', '')
     if '=' in move:
         move_part, promotion = move.split('=')
@@ -802,35 +692,26 @@ def find_source_square(move_data, position, player):
     source_file = move_data['source_file']
     source_rank = move_data['source_rank']
     is_capture = move_data['is_capture']
-
-    # Handle pawn special cases first
     if piece == 'P':
         pawn_source = find_pawn_source(move_data, position, player)
         if pawn_source:
             return pawn_source
-    # Find all pieces of the correct type
     candidates = []
     for (row, col), board_piece in position.items():
         if board_piece != piece_code:
             continue
-
-        # Filter by source file/rank if specified
         if source_file is not None and col != source_file:
             continue
         if source_rank is not None and row != source_rank:
             continue
-
-        # Check if the piece can legally move to the target
         if can_piece_move_to_target(piece, row, col, target_row,
                                     target_col, position, player,
                                     is_capture):
             candidates.append((row, col))
-
     if len(candidates) == 1:
         return candidates[0]
     elif len(candidates) > 1:
         return candidates[0]
-
     return None
 
 
@@ -839,52 +720,41 @@ def find_pawn_source(move_data, position, player):
     target_col = move_data['target_col']
     source_file = move_data['source_file']
     is_capture = move_data['is_capture']
-
-    # Define direction and starting rank based on player color
     direction = 1 if player == 'b' else -1
     pawn_code = player + 'P'
     starting_rank = 1 if player == 'b' else 6
     double_move_rank = 3 if player == 'b' else 4
-
     if source_file is None and not is_capture:
         one_square = (target_row + direction, target_col)
         if one_square in position and position[one_square] == pawn_code:
             return one_square
-
     if target_row == double_move_rank:
         two_square = (starting_rank, target_col)
         if two_square in position and position[two_square] == pawn_code:
             return two_square
-
     elif is_capture and source_file is not None:
         capture_square = (target_row + direction, source_file)
         if capture_square in position and position[capture_square] == pawn_code:
             return capture_square
-
     return None
 
 
 def can_piece_move_to_target(piece_type, row, col, target_row, target_col,
                              position, player, is_capture):
-    # Pawn movement rules
     if piece_type == 'P':
         return can_pawn_move_to_target(row, col, target_row,
                                        target_col, player, is_capture)
-    # Knight movement rules
     elif piece_type == 'N':
         return ((abs(row - target_row) == 2 and abs(col - target_col) == 1) or
                 (abs(row - target_row) == 1 and abs(col - target_col) == 2))
-    # Bishop movement rules
     elif piece_type == 'B':
         return (abs(row - target_row) == abs(col - target_col) and
                 is_diagonal_path_clear(position, row, col,
                                        target_row, target_col))
-    # Rook movement rules
     elif piece_type == 'R':
         return ((row == target_row or col == target_col) and
                 is_straight_path_clear(position, row, col,
                                        target_row, target_col))
-    # Queen movement rules
     elif piece_type == 'Q':
         if row == target_row or col == target_col:
             return is_straight_path_clear(position, row, col,
@@ -893,7 +763,6 @@ def can_piece_move_to_target(piece_type, row, col, target_row, target_col,
             return is_diagonal_path_clear(position, row, col,
                                           target_row, target_col)
         return False
-    # King movement rules
     elif piece_type == 'K':
         return abs(row - target_row) <= 1 and abs(col - target_col) <= 1
     return False
@@ -943,33 +812,39 @@ def generate_positions_from_moves(moves, initial_position):
     current_position = initial_position
     current_player = 'w'
     positions_history = []
+    move_squares = []
     for i, move in enumerate(moves):
         try:
-            current_position = apply_move_to_position(move, current_position,
-                                                      current_player)
+            if move in ["O-O", "O-O-O"]:
+                if current_player == 'w':
+                    move_squares.append("e1g1" if move == "O-O" else "e1c1")
+                else:
+                    move_squares.append("e8g8" if move == "O-O" else "e8c8")
+            else:
+                move_data = parse_move_notation(move)
+                source_square = find_source_square(move_data, current_position, current_player)
+                if source_square:
+                    target_square = (move_data['target_row'], move_data['target_col'])
+                    source_str = chr(source_square[1] + ord('a')) + str(8 - source_square[0])
+                    target_str = chr(target_square[1] + ord('a')) + str(8 - target_square[0])
+                    move_squares.append(source_str + target_str)
+            current_position = apply_move_to_position(move, current_position, current_player)
             positions_history.append(current_position.copy())
             current_player = 'b' if current_player == 'w' else 'w'
         except Exception as e:
-            print(f"Error at move {i+1} ({move}): {e}")
+            print(f"Error at move {i + 1} ({move}): {e}")
             break
-    return positions_history
+    return positions_history, move_squares
 
 
-# Only run if called directly
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setStyle('Windows')
-
-    # Enable app CSS
     QFontDatabase.addApplicationFont('../resources/Avenir_Light.ttf')
     with open("./styles.qss", "r") as f:
         style = f.read()
         app.setStyleSheet(style)
-
-    # Run app
     window = MainWindow()
-
-    # Set Icons
     if sys.platform == "win32":
         window.setWindowIcon(QIcon("../assets/icons/icon512x512ico.ico"))
         import ctypes
@@ -979,6 +854,5 @@ if __name__ == "__main__":
         window.setWindowIcon(QIcon("../assets/icons/icon512x512png.png"))
     else:
         print("Incompatible OS")
-    
     window.show()
     app.exec()
