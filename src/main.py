@@ -213,6 +213,15 @@ class MainWindow(QMainWindow):
         self.winner_label = QLabel("Result:")
         self.best_move_label = QLabel("Best Move:")
         self.evaluation_bar = QProgressBar()
+        self.evaluation_bar.setStyleSheet("""
+            QProgressBar {
+                border: 1px solid grey;
+                text-align: center;
+            }
+            QProgressBar::chunk {
+                background-color: white;
+            }
+        """)
         self.event_label.setWordWrap(True)
         info_group_layout.addWidget(self.white_name_label)
         info_group_layout.addWidget(self.white_elo_label)
@@ -517,7 +526,7 @@ def extract_game_info(pgn_content):
     if white_player_match:
         full_name = white_player_match.group(1)
         name_parts = full_name.split()[:3]
-        name_parts = [part.replace(',', '') for part in name_parts][::1]
+        name_parts = [part.replace(',', ' ') for part in name_parts][::1]
         game_info['white_player'] = ' '.join(name_parts)
     white_elo_match = re.search(white_elo_pattern, pgn_content)
     if white_elo_match:
@@ -526,7 +535,7 @@ def extract_game_info(pgn_content):
     if black_player_match:
         full_name = black_player_match.group(1)
         name_parts = full_name.split()[:3]
-        name_parts = [part.replace(',', '') for part in name_parts][::1]
+        name_parts = [part.replace(',', ' ') for part in name_parts][::1]
         game_info['black_player'] = ' '.join(name_parts)
     black_elo_match = re.search(black_elo_pattern, pgn_content)
     if black_elo_match:

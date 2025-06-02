@@ -15,18 +15,13 @@
 - [Notes](#feedback)
 - [Acknowledgments](#acknowledgments)
 - [Feedback](#feedback)
-- [Build Process](#build-process)
   
 ## Introduction
 Visualize PGN and FEN formats along with the help of a bundled stockfish engine to aid in simplifying even the trickiest of positions. Available to both Linux and Windows users.
-<p align="center">
-  <a href=""><img alt="Tux the Penguin" title="Linux Setup" src="https://github.com/user-attachments/assets/8e7b2e24-3eb5-4588-b50a-144136c35b47" width="35"></a>
-  <a href=""><img alt="Windows logo" title="Windows Download" src="https://github.com/user-attachments/assets/b3348305-faf3-4ea9-a417-12a95a01b027" width="70"></a>
-</p>
 
 <!-- Program Screenshot Large -->
 <p align="center">
-  <a href=""><img alt="FENnec Screenshot" src="https://github.com/user-attachments/assets/b298e610-dbbf-4e06-96fb-f69b2d01d9b5"></a>
+  <a href=""><img alt="FENnec Screenshot" src="https://github.com/user-attachments/assets/63ce1578-8b25-4879-acac-438853d2ed76"></a>
 </p>
 
 ## Features
@@ -58,7 +53,3 @@ To send me feedback on this project, send me a DM on [Bluesky](https://bsky.app/
 </p>
 <div align="center">
 </div>
-
-
-
-
