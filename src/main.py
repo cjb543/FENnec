@@ -1,11 +1,8 @@
-import math
-import os
-import re
-import sys
+import re, sys , time, traceback, threading
 from pathlib import Path
-from PyQt6.QtCore import (Qt, QPoint)
+from stockfish import Stockfish
+from PyQt6.QtCore import (Qt, QPoint, QThread, pyqtSignal, QThreadPool, pyqtSlot, QObject, QRunnable)
 from PyQt6.QtGui import (QShortcut, QKeySequence, QAction,
-                         QIcon, QFont,
                          QFontDatabase, QIcon)
 from PyQt6.QtWidgets import (QWidget, QLabel, QVBoxLayout, QHBoxLayout,
                              QMessageBox, QPushButton, QFileDialog, QLineEdit,
@@ -17,7 +14,11 @@ from theme_window import ThemeWindow
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.current_fen = ""
+        self.stockfish = Stockfish("/Users/benso/Documents/FENnec/resources/stockfish/stockfish-windows/stockfish.exe")
         self.chess_board = ChessBoard()
+        self.Worker = Worker(self)
+        self.WorkerSignals = WorkerSignals()
         self.help_window = PGNWindow()
         self.fen_window = FENWindow()
         self.theme_window = ThemeWindow(self.chess_board)
@@ -43,6 +44,11 @@ class MainWindow(QMainWindow):
         self.white_percentage = None
         self.black_percentage = None
         self.turn_label = None
+
+        self.threadpool = QThreadPool()
+        thread_count = self.threadpool.maxThreadCount()
+        print(f"Multithreading with maximum {thread_count} threads")
+
         self.setup_ui()
 
 
@@ -119,7 +125,7 @@ class MainWindow(QMainWindow):
         # "Edit -> Modify Position"
         modify_position = QAction(QIcon('./assets/modify_position.png'),
                                         'Modify Position...', self)
-        modify_position.triggered.connect(self.unlock_board)
+        modify_position.triggered.connect(unlock_board)
         modify_position.setStatusTip('Modify Position')
         modify_position.setShortcut('Ctrl+H')
         edit_menu.addAction(modify_position)
@@ -153,26 +159,31 @@ class MainWindow(QMainWindow):
 
         return menu_bar
 
-
     def on_fen_editing_finished(self):
         """Processes user input from the FEN string box"""
-        # Receive user input after Enter is pressed
-        user_input = self.fen_input.text()
+        user_input = self.fen_input.text().strip()
 
-        # Validate provided string
-        if _is_valid_fen(user_input):
-            self.load_fen_position(user_input)
+        if not user_input:
+            return
 
-        # Print helpful error message when failed
-        else:
-            error_message = QMessageBox()
-            error_message.setWindowTitle("Error")
-            error_message.setIcon(QMessageBox.Icon.Critical)
-            error_message.setStandardButtons(QMessageBox.StandardButton.Ok)
-            error_message.setText("Please enter a valid FEN string.")
-            error_message.exec()
+        try:
+            if hasattr(self, "stockfish") and self.stockfish.is_fen_valid(user_input):
+                print("Valid FEN")
+                self.load_fen_position(user_input)
+                self.evaluate_position(user_input)
+            else:
+                print("Invalid FEN")
+                error_message = QMessageBox()
+                error_message.setWindowTitle("Error")
+                error_message.setIcon(QMessageBox.Icon.Critical)
+                error_message.setStandardButtons(QMessageBox.StandardButton.Ok)
+                error_message.setText("Please enter a valid FEN string.")
+                error_message.exec()
+        except Exception as e:
+            print(f"Error checking FEN: {e}")
+
+
         self.fen_input.clear()
-
 
     def load_fen_position(self, fen_string):
         """Loads a chess position based on a given FEN-string"""
@@ -181,7 +192,7 @@ class MainWindow(QMainWindow):
         self.chess_board.positions_history = []
         self.chess_board.current_move_index = -1
         self.chess_board.is_opened = True
-        
+
         # Parse FEN string
         parts = fen_string.split()
         position = parts[0]
@@ -469,15 +480,88 @@ class MainWindow(QMainWindow):
         if label_widget:
             label_widget.setText(f"({current_move}/{total_moves})")
 
+    def evaluate_clicked(self):
+        # Example FEN from an opening
+        fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        self.evaluate_position(fen)
 
-    def unlock_board(self):
-        error_message = QMessageBox()
-        error_message.setWindowTitle("Error")
-        error_message.setIcon(QMessageBox.Icon.Critical)
-        error_message.setStandardButtons(QMessageBox.StandardButton.Ok)
-        error_message.setText("This feature is still WIP! Sorry...")
-        error_message.exec()
-        pass
+    def evaluate_position(self, fen):
+        worker = Worker(self.evaluate_fen, fen)
+        worker.signals.result.connect(self.update_stockfish_ui)
+        self.threadpool.start(worker)
+
+    def evaluate_fen(self, fen, progress_callback):
+        print("Running in thread:", threading.current_thread().name)
+        self.stockfish.set_fen_position(fen)
+        eval_info = self.stockfish.get_evaluation()
+        best_move = self.stockfish.get_best_move()
+
+
+        if eval_info["type"] == "cp":
+            cp = eval_info["value"]
+            evaluation_score = max(min(cp, 1000), -1000)
+        elif eval_info["type"] == "mate":
+            evaluation_score = 1000 if eval_info["value"] > 0 else -1000
+        else:
+            evaluation_score = 0
+
+        bar_value = int((evaluation_score + 1000) / 2)
+        white_pct = max(0, min(100, int(50 + (evaluation_score / 20))))
+        black_pct = 100 - white_pct
+
+        return {
+            "best_move": best_move,
+            "bar_value": bar_value,
+            "white_pct": white_pct,
+            "black_pct": black_pct,
+        }
+
+
+    def update_stockfish_ui(self, result):
+        self.best_move_label.setText(f"Best Move: {result['best_move']}")
+        self.evaluation_bar.setValue(result["bar_value"])
+        self.white_percentage.setText(f"White: {result['white_pct']}%")
+        self.black_percentage.setText(f"Black: {result['black_pct']}%")
+
+
+class WorkerSignals(QObject):
+    finished = pyqtSignal()
+    error = pyqtSignal(tuple)
+    result = pyqtSignal(object)
+    progress = pyqtSignal(float)
+
+
+class Worker(QRunnable):
+    def __init__(self, fn, *args, **kwargs):
+        super().__init__()
+        self.fn = fn
+        self.args = args
+        self.kwargs = kwargs
+        self.signals = WorkerSignals()
+        self.kwargs["progress_callback"] = self.signals.progress
+
+    @pyqtSlot()
+    def run(self):
+        try:
+            result = self.fn(*self.args, **self.kwargs)
+        except Exception:
+            traceback.print_exc()
+            exctype, value = sys.exc_info()[:2]
+            self.signals.error.emit((exctype, value, traceback.format_exc()))
+        else:
+            self.signals.result.emit(result)
+        finally:
+            self.signals.finished.emit()
+
+
+def unlock_board():
+    error_message = QMessageBox()
+    error_message.setWindowTitle("Error")
+    error_message.setIcon(QMessageBox.Icon.Critical)
+    error_message.setStandardButtons(QMessageBox.StandardButton.Ok)
+    error_message.setText("This feature is still WIP! Sorry...")
+    error_message.exec()
+
 
 # Static processing functions
 def extract_game_info(pgn_content):

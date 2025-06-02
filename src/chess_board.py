@@ -1,6 +1,7 @@
 from pathlib import Path
+
 from PyQt6.QtCore import (Qt, QRectF)
-from PyQt6.QtGui import (QPainter, QColor, QPen, QPainterPath, QMouseEvent)
+from PyQt6.QtGui import (QPainter, QColor, QPainterPath)
 from PyQt6.QtSvg import QSvgRenderer
 from PyQt6.QtWidgets import (QWidget, QLabel)
 
@@ -151,8 +152,6 @@ class ChessBoard(QWidget):
         total_moves = self.get_move_count()
         if label_widget:
             label_widget.setText(f"({current_move}/{total_moves})")
-
-
 
 
 class ThemeBase:

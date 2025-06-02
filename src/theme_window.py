@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QListWidget, QPushButton)
+from PyQt6.QtWidgets import (QVBoxLayout, QListWidget, QPushButton)
 from chess_board import *
 
 
