@@ -17,7 +17,7 @@
 - [Feedback](#feedback)
   
 ## Introduction
-Visualize PGN and FEN formats along with the help of a bundled stockfish engine to aid in simplifying even the trickiest of positions. Available to both Linux and Windows users.
+Visualize PGN and FEN formats along with the help of a bundled stockfish engine to aid in simplifying even the trickiest of positions. Available to ~~both Linux and~~ Windows users.
 
 <!-- Program Screenshot Large -->
 <p align="center">
